@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apprendre Claude Code</title>
+<meta name="description" content="Outil interactif pour apprendre Claude Code à partir de zéro, avec un parcours général et un parcours Talent Acquisition Tech.">
+<style>
+  :root{
+    --bg:#f7f7f5;
+    --bg-elevated:#ffffff;
+    --text:#1f1d1a;
+    --text-muted:#6b6558;
+    --border:#e4e0d8;
+    --accent:#c15f3c;
+    --accent-soft:#f3e2da;
+    --accent-contrast:#ffffff;
+    --success:#3f7a53;
+    --success-soft:#e1efe4;
+    --danger:#b3432f;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(31,29,26,0.06),0 8px 24px rgba(31,29,26,0.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#181614;
+      --bg-elevated:#221f1c;
+      --text:#f1ede6;
+      --text-muted:#a89f8f;
+      --border:#3a352e;
+      --accent:#e08a63;
+      --accent-soft:#3a2a22;
+      --accent-contrast:#1f1512;
+      --success:#7cc294;
+      --success-soft:#1f2e22;
+      --danger:#e08a76;
+      --shadow:0 1px 2px rgba(0,0,0,0.3),0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#181614;
+    --bg-elevated:#221f1c;
+    --text:#f1ede6;
+    --text-muted:#a89f8f;
+    --border:#3a352e;
+    --accent:#e08a63;
+    --accent-soft:#3a2a22;
+    --accent-contrast:#1f1512;
+    --success:#7cc294;
+    --success-soft:#1f2e22;
+    --danger:#e08a76;
+    --shadow:0 1px 2px rgba(0,0,0,0.3),0 8px 24px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);}
+  .wrap{max-width:880px;margin:0 auto;padding:24px 16px 80px;}
+  header.top{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+    margin-bottom:28px;flex-wrap:wrap;
+  }
+  header.top h1{font-size:1.6rem;margin:0 0 6px;}
+  header.top p{margin:0;color:var(--text-muted);max-width:56ch;font-size:0.95rem;}
+  .theme-btn{
+    border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);
+    border-radius:999px;padding:8px 14px;font-size:0.85rem;cursor:pointer;white-space:nowrap;
+  }
+  .theme-btn:hover{border-color:var(--accent);}
+
+  nav.tabs{
+    display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);
+    overflow-x:auto;
+  }
+  nav.tabs button{
+    appearance:none;border:none;background:transparent;color:var(--text-muted);
+    font-size:0.95rem;font-weight:600;padding:10px 4px;margin-right:20px;
+    cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;
+  }
+  nav.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+  section.panel{display:none;}
+  section.panel.active{display:block;}
+
+  .intro-card{
+    background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);
+    padding:20px;margin-bottom:24px;box-shadow:var(--shadow);
+  }
+  .intro-card h2{margin-top:0;font-size:1.15rem;}
+  .intro-card ul{margin:8px 0 0;padding-left:20px;color:var(--text-muted);}
+  .intro-card li{margin-bottom:4px;}
+
+  .progress-row{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+  .progress-track{
+    flex:1;height:8px;background:var(--border);border-radius:999px;overflow:hidden;
+  }
+  .progress-fill{height:100%;background:var(--accent);border-radius:999px;transition:width .3s ease;}
+  .progress-label{font-size:0.82rem;color:var(--text-muted);white-space:nowrap;}
+
+  .module{
+    background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);
+    margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);
+  }
+  .module-head{
+    display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none;
+  }
+  .module-head input[type="checkbox"]{
+    width:20px;height:20px;flex:none;accent-color:var(--success);cursor:pointer;
+  }
+  .module-head .num{
+    font-size:0.75rem;color:var(--text-muted);font-weight:700;flex:none;width:22px;
+  }
+  .module-head h3{margin:0;font-size:1rem;flex:1;}
+  .module-head .chev{color:var(--text-muted);transition:transform .2s ease;flex:none;}
+  .module.open .chev{transform:rotate(90deg);}
+  .module-body{display:none;padding:0 16px 18px 58px;color:var(--text-muted);font-size:0.93rem;}
+  .module.open .module-body{display:block;}
+  .module-body p{margin:0 0 10px;}
+  .module-body ul{margin:0 0 10px;padding-left:18px;}
+  .tip{
+    background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:0.87rem;
+    color:var(--text);margin:10px 0;
+  }
+  .tip b{color:var(--accent);}
+
+  .quiz{border-top:1px dashed var(--border);margin-top:12px;padding-top:12px;}
+  .quiz .q{margin-bottom:14px;}
+  .quiz .qtext{font-weight:600;color:var(--text);margin-bottom:6px;font-size:0.9rem;}
+  .quiz label{
+    display:flex;gap:8px;align-items:flex-start;padding:7px 10px;border:1px solid var(--border);
+    border-radius:8px;margin-bottom:6px;cursor:pointer;font-size:0.87rem;background:var(--bg);
+  }
+  .quiz label:hover{border-color:var(--accent);}
+  .quiz label.correct{border-color:var(--success);background:var(--success-soft);}
+  .quiz label.incorrect{border-color:var(--danger);}
+  .quiz input{margin-top:2px;}
+  .quiz .explain{
+    display:none;font-size:0.83rem;margin-top:4px;padding:8px 10px;border-radius:8px;
+    background:var(--bg);border:1px solid var(--border);
+  }
+  .quiz .explain.show{display:block;}
+
+  .glossary-search{
+    width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);
+    background:var(--bg-elevated);color:var(--text);font-size:0.95rem;margin-bottom:16px;
+  }
+  dl.glossary{margin:0;}
+  dl.glossary div{
+    background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;
+    padding:12px 14px;margin-bottom:8px;
+  }
+  dl.glossary dt{font-weight:700;color:var(--accent);font-size:0.92rem;}
+  dl.glossary dd{margin:4px 0 0;color:var(--text-muted);font-size:0.88rem;}
+
+  .res-list{list-style:none;padding:0;margin:0;}
+  .res-list li{
+    background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;
+    padding:12px 14px;margin-bottom:8px;font-size:0.9rem;
+  }
+  .res-list a{font-weight:600;text-decoration:none;}
+  .res-list a:hover{text-decoration:underline;}
+  .res-list p{margin:4px 0 0;color:var(--text-muted);font-size:0.85rem;}
+
+  footer{margin-top:40px;text-align:center;color:var(--text-muted);font-size:0.8rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Apprendre Claude Code</h1>
+      <p>Un outil pour partir de zéro : comprendre Claude Code en général, puis l'utiliser comme atout en tant que Talent Acquisition dans la tech.</p>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button">🌓 Thème</button>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="general" class="active">Parcours général</button>
+    <button data-tab="recruiter">Talent Acquisition Tech</button>
+    <button data-tab="glossary">Lexique</button>
+    <button data-tab="resources">Ressources</button>
+  </nav>
+
+  <section class="panel active" id="panel-general">
+    <div class="intro-card">
+      <h2>Ce que tu vas comprendre</h2>
+      <ul>
+        <li>Ce qu'est Claude Code et en quoi il diffère d'un simple chatbot</li>
+        <li>Comment l'installer et lui parler efficacement</li>
+        <li>Ses outils, ses commandes et son fonctionnement "agentique"</li>
+        <li>Comment il s'intègre à Git/GitHub et où sont les limites de sécurité</li>
+      </ul>
+    </div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="fill-general"></div></div>
+      <span class="progress-label" id="label-general">0 / 0</span>
+    </div>
+    <div id="list-general"></div>
+  </section>
+
+  <section class="panel" id="panel-recruiter">
+    <div class="intro-card">
+      <h2>Ce que tu vas comprendre</h2>
+      <ul>
+        <li>Pourquoi ces outils changent le métier de recruteur tech</li>
+        <li>Le vocabulaire dev à connaître pour être crédible en entretien</li>
+        <li>Comment évaluer un candidat sur son usage de l'IA, sans coder toi-même</li>
+        <li>Comment utiliser Claude Code pour tes propres outils de sourcing</li>
+      </ul>
+    </div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="fill-recruiter"></div></div>
+      <span class="progress-label" id="label-recruiter">0 / 0</span>
+    </div>
+    <div id="list-recruiter"></div>
+  </section>
+
+  <section class="panel" id="panel-glossary">
+    <input type="search" class="glossary-search" id="glossarySearch" placeholder="Chercher un terme (ex : PR, agent, MCP...)">
+    <dl class="glossary" id="glossaryList"></dl>
+  </section>
+
+  <section class="panel" id="panel-resources">
+    <ul class="res-list" id="resourceList"></ul>
+  </section>
+
+  <footer>Progression sauvegardée localement dans ton navigateur (localStorage) — rien n'est envoyé ailleurs.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Data ----------
+  var GENERAL = [
+    {
+      title: "Qu'est-ce que Claude Code ?",
+      content: "<p>Claude Code est un assistant de programmation <b>agentique</b> développé par Anthropic. Contrairement à un chatbot classique, il ne se contente pas de répondre : il peut lire ton code, l'analyser, proposer des modifications, les appliquer directement dans tes fichiers, exécuter des commandes dans un terminal, et gérer Git pour toi (branches, commits, pull requests).</p><p>Il existe sous plusieurs formes : en ligne de commande (CLI), en extension d'IDE (VS Code, JetBrains), en application desktop, et même directement dans le navigateur (\"Claude Code sur le web\").</p>",
+      tip: "Imagine un développeur junior très rapide à qui tu donnes des instructions écrites, qui exécute, et que tu supervises.",
+      quiz: [
+        {
+          q: "Claude Code peut...",
+          options: ["Seulement discuter de code, sans le modifier", "Lire, modifier des fichiers et exécuter des commandes", "Remplacer entièrement un développeur"],
+          correct: 1,
+          explain: "Claude Code agit directement sur le code et le système (fichiers, terminal, Git), mais reste supervisé par un humain à chaque étape sensible."
+        },
+        {
+          q: "Que signifie \"agentique\" ?",
+          options: ["Il peut agir de façon autonome, en plusieurs étapes, pour accomplir une tâche", "Il fonctionne uniquement avec des agences", "Il demande une validation manuelle à chaque mot généré"],
+          correct: 0,
+          explain: "\"Agentique\" décrit un système qui planifie et enchaîne des actions (lire, écrire, exécuter, vérifier) jusqu'à accomplir un objectif, plutôt que de produire une seule réponse."
+        }
+      ]
+    },
+    {
+      title: "Installation et premiers pas",
+      content: "<p>Claude Code s'installe le plus souvent via npm (<code>npm install -g @anthropic-ai/claude-code</code>) ou un installeur natif, puis se lance avec la commande <code>claude</code> depuis le dossier d'un projet. Il peut lire un fichier spécial <code>CLAUDE.md</code> à la racine du projet : une sorte de mémo permanent où l'équipe écrit les règles et le contexte que Claude doit toujours connaître.</p>",
+      tip: "CLAUDE.md, c'est un peu le livret d'accueil qu'on donnerait à un nouvel employé qui rejoint l'équipe.",
+      quiz: [
+        {
+          q: "À quoi sert le fichier CLAUDE.md ?",
+          options: ["À stocker les mots de passe du projet", "À donner à Claude un contexte et des règles permanentes sur le projet", "C'est un fichier généré automatiquement et inutile à modifier"],
+          correct: 1,
+          explain: "CLAUDE.md contient les conventions, contraintes et informations que l'équipe veut que Claude connaisse à chaque session, sans avoir à les répéter."
+        }
+      ]
+    },
+    {
+      title: "Parler à Claude Code : le dialogue et les sessions",
+      content: "<p>On interagit en langage naturel, comme avec un collègue : on décrit une tâche (\"corrige ce bug\", \"ajoute un test\"), Claude pose des questions si besoin, propose un plan, puis exécute. Une <b>session</b> garde le fil de la conversation et le contexte du projet.</p><p>Il existe aussi un mode web (Claude Code sur claude.ai/code) qui permet de lancer des sessions à distance dans un environnement cloud isolé — pratique pour travailler depuis un téléphone ou lancer une tâche en arrière-plan pendant qu'on fait autre chose.</p>",
+      tip: "Tu peux couper une session et la reprendre plus tard : le contexte du projet reste disponible.",
+      quiz: [
+        {
+          q: "Le mode \"Claude Code sur le web\" sert notamment à...",
+          options: ["Remplacer le fichier CLAUDE.md", "Lancer des sessions à distance, dans le cloud, sans avoir son terminal ouvert", "Uniquement afficher de la documentation"],
+          correct: 1,
+          explain: "Le mode web permet de démarrer et suivre des sessions Claude Code depuis un navigateur, y compris pour des tâches en arrière-plan."
+        }
+      ]
+    },
+    {
+      title: "La boucle agentique : comment Claude agit",
+      content: "<p>Claude Code fonctionne par boucle : il lit la demande, explore le code (recherche et lecture de fichiers), décide des actions à mener, les exécute avec des <b>outils</b>, observe le résultat, puis recommence jusqu'à ce que la tâche soit terminée ou qu'il ait besoin de ton avis.</p><p>C'est ce qui le différencie d'un outil de simple auto-complétion, qui ne fait que suggérer la ligne de code suivante.</p>",
+      tip: "Une bonne image : Claude explore d'abord (comme on chercherait dans les dossiers d'un projet), avant d'agir.",
+      quiz: [
+        {
+          q: "Qu'est-ce qui distingue Claude Code d'un simple outil d'auto-complétion de code ?",
+          options: ["Il enchaîne plusieurs actions de façon autonome jusqu'à finir la tâche", "Il ne fonctionne que dans un navigateur", "Il ne peut pas lire de fichiers"],
+          correct: 0,
+          explain: "L'auto-complétion suggère la suite d'une ligne ; un agent comme Claude Code planifie et exécute une série d'actions pour atteindre un objectif complet."
+        }
+      ]
+    },
+    {
+      title: "Les outils de Claude Code",
+      content: "<p>Claude Code choisit lui-même quel <b>outil</b> utiliser selon la tâche :</p><ul><li><b>Read</b> — lire un fichier</li><li><b>Write / Edit</b> — créer ou modifier un fichier</li><li><b>Bash</b> — exécuter des commandes (lancer des tests, installer une dépendance...)</li><li><b>Grep / Glob</b> — chercher du texte ou des fichiers dans le projet</li><li><b>Task / Agent</b> — déléguer une sous-tâche à un agent spécialisé</li><li><b>WebSearch / WebFetch</b> — chercher de l'information en ligne</li></ul>",
+      tip: "Chaque outil correspond à une capacité précise — comme des applications différentes sur un même ordinateur.",
+      quiz: [
+        {
+          q: "Quel outil Claude utiliserait pour lancer la suite de tests d'un projet ?",
+          options: ["Read", "Bash", "WebSearch"],
+          correct: 1,
+          explain: "Bash permet d'exécuter des commandes shell, comme lancer une suite de tests ou installer une dépendance."
+        }
+      ]
+    },
+    {
+      title: "Commandes slash, skills et sous-agents",
+      content: "<p>Les <b>commandes slash</b> (ex : <code>/help</code>, <code>/clear</code>, <code>/init</code>) sont des raccourcis pour des actions courantes. Les <b>skills</b> sont des paquets d'instructions réutilisables pour des tâches récurrentes propres à une équipe (ex : un skill \"revue de code\" qui applique toujours la même checklist). Les <b>sous-agents</b> sont des assistants spécialisés qu'on délègue sur une sous-tâche précise, par exemple un agent dédié à explorer le code sans encombrer la conversation principale.</p>",
+      tip: "Penser \"skill\" = une procédure écrite une fois, réutilisée à volonté par toute l'équipe.",
+      quiz: [
+        {
+          q: "Un \"skill\" sert principalement à...",
+          options: ["Empaqueter des instructions réutilisables pour une tâche récurrente", "Remplacer le fichier CLAUDE.md", "Bloquer l'accès à certains fichiers"],
+          correct: 0,
+          explain: "Un skill encapsule un mode opératoire réutilisable (ex : checklist de revue, procédure de déploiement) que Claude suit à chaque appel."
+        }
+      ]
+    },
+    {
+      title: "Git & GitHub avec Claude Code",
+      content: "<p>Claude Code peut créer des branches, faire des commits avec des messages clairs, pousser du code, et ouvrir des pull requests (PR). Il peut aussi surveiller une PR, répondre aux commentaires de revue, et corriger automatiquement des échecs d'intégration continue (CI).</p><p>C'est un vrai gain de temps sur les tâches répétitives de gestion de version — mais un humain reste responsable de valider et fusionner les changements importants.</p>",
+      tip: "Une pull request (PR), c'est une proposition de fusion de code, soumise à relecture avant d'être acceptée.",
+      quiz: [
+        {
+          q: "Qui doit rester responsable de la validation finale d'une pull request importante ?",
+          options: ["Uniquement Claude Code", "Un humain", "Personne, cela se fait automatiquement"],
+          correct: 1,
+          explain: "Claude Code peut préparer, corriger et documenter une PR, mais la décision de fusionner un changement important reste une responsabilité humaine."
+        }
+      ]
+    },
+    {
+      title: "Bien formuler ses demandes",
+      content: "<p>Plus une instruction est précise, meilleur est le résultat. Bonnes pratiques : donner le contexte (pourquoi), le résultat attendu (quoi), les contraintes (comment ne pas faire), et laisser Claude poser des questions en cas d'ambiguïté.</p><ul><li>Exemple faible : \"corrige le bug\"</li><li>Exemple fort : \"Le formulaire d'inscription plante quand l'email contient un +, corrige la validation et ajoute un test.\"</li></ul>",
+      tip: "Un bon prompt ressemble à un bon ticket : contexte, objectif, contraintes.",
+      quiz: [
+        {
+          q: "Laquelle de ces instructions est la plus efficace ?",
+          options: ["\"Corrige le bug\"", "\"Le formulaire plante avec un email contenant un +, corrige la validation et ajoute un test\"", "\"Fais quelque chose d'utile\""],
+          correct: 1,
+          explain: "Une instruction précise (contexte + résultat attendu) réduit les allers-retours et améliore la qualité du résultat."
+        }
+      ]
+    },
+    {
+      title: "Sécurité, permissions et supervision",
+      content: "<p>Claude Code demande une autorisation avant les actions sensibles (modifier un fichier, exécuter une commande, pousser du code), selon le mode de permission choisi — du plus prudent (validation à chaque action) au plus autonome. Pour les actions risquées (suppression de données, force-push, appels à des services externes), la vigilance humaine reste essentielle : toujours relire ce qui est proposé avant de valider, surtout au début.</p>",
+      tip: "En cas de doute sur une action, il vaut toujours mieux demander une confirmation supplémentaire que la regretter.",
+      quiz: [
+        {
+          q: "Face à une action risquée proposée par Claude Code (ex : suppression de données), la bonne pratique est...",
+          options: ["Valider automatiquement pour aller plus vite", "Relire et confirmer explicitement avant d'agir", "Désactiver toutes les permissions définitivement"],
+          correct: 1,
+          explain: "Les actions difficilement réversibles méritent toujours une relecture humaine avant validation, quel que soit le niveau d'autonomie configuré."
+        }
+      ]
+    },
+    {
+      title: "Aller plus loin : hooks, MCP, intégrations",
+      content: "<p>Les <b>hooks</b> permettent de déclencher automatiquement une commande à un moment précis (ex : lancer les tests après chaque modification). Le <b>MCP</b> (Model Context Protocol) permet de connecter Claude à des outils externes : GitHub, Slack, une base de données, un CRM... Cela permet de construire des workflows complets, par exemple un agent qui surveille des candidatures dans un ATS et prépare un résumé automatiquement.</p>",
+      tip: "Le MCP, c'est ce qui permet à Claude de \"brancher\" de nouveaux outils sans que ce soit codé en dur dans l'assistant.",
+      quiz: [
+        {
+          q: "Le MCP (Model Context Protocol) sert à...",
+          options: ["Chiffrer les messages envoyés à Claude", "Connecter Claude à des outils et données externes (GitHub, Slack, CRM...)", "Remplacer les commandes slash"],
+          correct: 1,
+          explain: "Le MCP standardise la façon dont un assistant IA se connecte à des outils et sources de données externes."
+        }
+      ]
+    }
+  ];
+
+  var RECRUITER = [
+    {
+      title: "Pourquoi un recruteur tech doit s'y intéresser",
+      content: "<p>Les outils comme Claude Code changent la façon dont les développeurs travaillent : plus vite, avec moins de tâches répétitives, mais avec de nouvelles compétences à évaluer (cadrer une IA, relire son travail, garder l'esprit critique). Comprendre ces outils, même sans coder soi-même, aide à mieux rédiger des offres d'emploi réalistes, poser de meilleures questions en entretien, et repérer les candidats qui savent réellement s'en servir — plutôt que ceux qui se contentent de le citer sur un CV.</p>",
+      tip: "Tu n'as pas besoin de savoir coder pour comprendre l'impact de ces outils sur le métier de développeur.",
+      quiz: [
+        {
+          q: "Pour un recruteur tech, comprendre Claude Code sert avant tout à...",
+          options: ["Coder à la place des candidats", "Mieux évaluer les compétences réelles et écrire des offres plus justes", "Remplacer les entretiens techniques"],
+          correct: 1,
+          explain: "L'objectif n'est pas de devenir développeur, mais de mieux comprendre le métier pour recruter avec plus de justesse."
+        }
+      ]
+    },
+    {
+      title: "Le vocabulaire essentiel pour parler avec des développeurs",
+      content: "<ul><li><b>Repo</b> — dépôt où vit le code d'un projet</li><li><b>Branch</b> — ligne de développement parallèle au code principal</li><li><b>Commit</b> — sauvegarde d'un changement, avec un message explicatif</li><li><b>Pull Request (PR)</b> — proposition de fusion de code, soumise à relecture</li><li><b>CI/CD</b> — tests et déploiements automatiques</li><li><b>Code review</b> — relecture du code par un pair avant fusion</li><li><b>Prompt</b> — instruction donnée à une IA</li></ul>",
+      tip: "Consulte l'onglet \"Lexique\" pour une liste complète et cherchable.",
+      quiz: [
+        {
+          q: "Une \"pull request\" (PR), c'est...",
+          options: ["Une sauvegarde automatique du code toutes les heures", "Une proposition de fusion de code soumise à relecture avant d'être acceptée", "Un bug signalé par un utilisateur"],
+          correct: 1,
+          explain: "Une PR est le mécanisme par lequel un changement de code est proposé, discuté, puis potentiellement intégré au projet principal."
+        }
+      ]
+    },
+    {
+      title: "Poser de bonnes questions en entretien (sans être développeur)",
+      content: "<p>L'objectif n'est pas de tester la syntaxe, mais l'esprit critique et la méthode :</p><ul><li>\"Montre-moi un exemple où tu as utilisé un outil IA pour accélérer une tâche — qu'as-tu dû vérifier ensuite ?\"</li><li>\"Comment décides-tu de ce que tu délègues à une IA vs ce que tu codes toi-même ?\"</li><li>\"Peux-tu m'expliquer une modification proposée par une IA que tu as refusée, et pourquoi ?\"</li></ul>",
+      tip: "Une bonne réponse mentionne toujours une étape de vérification humaine — c'est le signal le plus fiable.",
+      quiz: [
+        {
+          q: "Quel type de question révèle le mieux la maturité d'un candidat sur l'usage de l'IA ?",
+          options: ["\"Connais-tu Claude Code ?\" (oui/non)", "\"Peux-tu m'expliquer une suggestion IA que tu as refusée, et pourquoi ?\"", "\"Combien de lignes de code écris-tu par jour ?\""],
+          correct: 1,
+          explain: "Faire raconter un cas concret de refus ou de correction révèle l'esprit critique, bien plus qu'une question fermée sur la connaissance d'un outil."
+        }
+      ]
+    },
+    {
+      title: "Repérer les vrais signaux vs le buzzword IA",
+      content: "<p>Un CV qui liste \"Claude Code, Cursor, Copilot\" ne dit rien du niveau réel. Signaux positifs : le candidat explique ce qu'il a vérifié ou rejeté dans les suggestions IA, a des exemples concrets (PR, commits), comprend les limites de l'outil. Signal d'alerte (\"vibe coding\" non maîtrisé) : le candidat accepte tout ce que l'IA propose sans comprendre, ou ne sait pas expliquer son propre code.</p>",
+      tip: "Le terme \"vibe coding\" désigne le fait de coder \"au feeling\" avec l'IA, sans toujours comprendre ni vérifier le résultat produit.",
+      quiz: [
+        {
+          q: "Lister des outils IA sur un CV est...",
+          options: ["Une preuve suffisante de compétence", "Un point de départ, mais pas une preuve — il faut creuser avec des exemples concrets", "Sans aucun intérêt à mentionner"],
+          correct: 1,
+          explain: "Les noms d'outils évoluent vite et ne garantissent rien sur le niveau réel ; les exemples concrets et la méthode sont bien plus révélateurs."
+        }
+      ]
+    },
+    {
+      title: "Utiliser Claude Code toi-même : le meilleur moyen d'apprendre",
+      content: "<p>Construire un petit outil (comme celui que tu es en train d'utiliser !) avec Claude Code est la meilleure façon de comprendre l'expérience développeur de l'intérieur. Cela donne de la crédibilité auprès des candidats techniques, apprend le vocabulaire par la pratique, et peut faire gagner du temps sur tes propres tâches : trackers de candidatures, scripts de tri de CV, automatisations simples.</p>",
+      tip: "Cet outil que tu lis a été construit avec Claude Code — un bon premier exemple à raconter en entretien.",
+      quiz: [
+        {
+          q: "Quel est le principal bénéfice, pour un recruteur, de construire un petit outil avec Claude Code ?",
+          options: ["Devenir développeur professionnel", "Comprendre l'expérience développeur de l'intérieur et gagner en crédibilité technique", "Remplacer l'équipe technique"],
+          correct: 1,
+          explain: "L'objectif n'est pas de devenir dev, mais de vivre l'expérience pour mieux comprendre et échanger avec les profils techniques."
+        }
+      ]
+    },
+    {
+      title: "L'impact de l'IA sur les profils recherchés",
+      content: "<p>De nouveaux profils émergent : \"AI/ML engineer\", \"AI-augmented developer\", \"prompt/context engineer\". Les attentes évoluent aussi pour les rôles classiques : on valorise de plus en plus la capacité à superviser et cadrer une IA plutôt que la seule vitesse de frappe. Un junior qui maîtrise bien les outils IA peut livrer plus vite, mais la profondeur de compréhension reste le vrai différenciateur à moyen terme.</p>",
+      tip: "Sur un poste, demande-toi : cette compétence sera-t-elle encore utile si les outils IA changent l'an prochain ?",
+      quiz: [
+        {
+          q: "Qu'est-ce qui reste le vrai différenciateur entre profils à moyen terme, selon ce module ?",
+          options: ["La vitesse de frappe", "La profondeur de compréhension et l'esprit critique", "Le nombre d'outils IA cités sur le CV"],
+          correct: 1,
+          explain: "Les outils changent vite ; la capacité à comprendre, vérifier et cadrer le travail reste la compétence durable."
+        }
+      ]
+    },
+    {
+      title: "Où et comment sourcer ces talents",
+      content: "<p>Recherche des signaux concrets : contributions open-source (GitHub), articles ou posts techniques expliquant un usage réfléchi de l'IA, participation à des communautés dev. Évite de filtrer uniquement sur des mots-clés d'outils dans les CV (ils changent vite) ; préfère les preuves de méthode et de jugement.</p>",
+      tip: "Un historique de contributions GitHub avec des messages de commit clairs en dit souvent plus qu'une liste de compétences.",
+      quiz: [
+        {
+          q: "Quelle approche de sourcing est la plus fiable selon ce module ?",
+          options: ["Filtrer uniquement sur les mots-clés d'outils IA du CV", "Chercher des preuves concrètes de méthode : contributions, articles, exemples", "Se fier uniquement à l'intitulé du dernier poste"],
+          correct: 1,
+          explain: "Les preuves concrètes (contributions, exemples de raisonnement) sont plus fiables et plus durables que des mots-clés d'outils."
+        }
+      ]
+    },
+    {
+      title: "Red flags & green flags en entretien assisté par IA",
+      content: "<p><b>Red flags</b> : incapacité à expliquer un choix du code présenté, silence total sur les limites de l'IA utilisée, sur-confiance sans vérification. <b>Green flags</b> : transparence sur l'usage d'outils IA, exemples de correction d'une erreur produite par l'IA, capacité à vulgariser une notion technique pour un non-développeur — un signe de vraie compréhension, utile aussi pour bien communiquer avec toi en tant que recruteur.</p>",
+      tip: "Un candidat capable de t'expliquer simplement une notion technique complexe est souvent un très bon signal.",
+      quiz: [
+        {
+          q: "Lequel de ces éléments est un \"green flag\" ?",
+          options: ["Le candidat ne mentionne jamais avoir corrigé une suggestion IA", "Le candidat explique clairement une erreur IA qu'il a repérée et corrigée", "Le candidat refuse de parler de sa méthode de travail"],
+          correct: 1,
+          explain: "La capacité à détecter et corriger une erreur produite par l'IA démontre un vrai esprit critique, un signal positif fort."
+        }
+      ]
+    }
+  ];
+
+  var GLOSSARY = [
+    ["Repo (dépôt)", "Espace où vit le code d'un projet, avec tout son historique de changements."],
+    ["Branch (branche)", "Ligne de développement parallèle au code principal, utilisée pour travailler sans perturber les autres."],
+    ["Commit", "Sauvegarde d'un changement de code, accompagnée d'un message expliquant ce qui a été fait."],
+    ["Pull Request (PR)", "Proposition de fusion d'une branche vers le code principal, soumise à relecture avant d'être acceptée."],
+    ["Merge (fusion)", "Action d'intégrer les changements d'une branche dans une autre, généralement après validation d'une PR."],
+    ["CI/CD", "Intégration et déploiement continus : tests et mises en production automatisés à chaque changement de code."],
+    ["Code review (revue de code)", "Relecture du code par un pair avant de l'accepter, pour vérifier qualité et cohérence."],
+    ["Agentique", "Se dit d'une IA capable d'agir de façon autonome, en plusieurs étapes, pour accomplir un objectif."],
+    ["LLM", "Large Language Model : modèle d'IA entraîné sur du texte, capable de comprendre et générer du langage (dont le code)."],
+    ["Prompt", "Instruction ou question donnée à une IA pour orienter sa réponse ou son action."],
+    ["Token", "Unité de texte (mot ou fragment de mot) utilisée par un modèle d'IA pour lire et générer du contenu."],
+    ["Contexte / fenêtre de contexte", "Quantité d'information (texte, code) qu'une IA peut prendre en compte en même temps."],
+    ["MCP (Model Context Protocol)", "Standard permettant de connecter une IA à des outils et données externes (GitHub, Slack, bases de données...)."],
+    ["Hook", "Commande automatiquement déclenchée à un moment précis d'un processus (ex : après chaque modification de fichier)."],
+    ["Slash command", "Commande raccourci commençant par \"/\" pour déclencher une action précise (ex : /help, /init)."],
+    ["Skill", "Paquet d'instructions réutilisables pour accomplir une tâche récurrente de façon standardisée."],
+    ["Sous-agent", "Assistant IA spécialisé, délégué sur une sous-tâche précise pour ne pas encombrer la conversation principale."],
+    ["CLAUDE.md", "Fichier à la racine d'un projet contenant le contexte et les règles permanentes destinées à l'IA."],
+    ["Vibe coding", "Fait de coder \"au feeling\" avec l'aide d'une IA, parfois sans vérifier ni comprendre pleinement le résultat produit."],
+    ["Open source", "Code dont le contenu est public et modifiable par la communauté, souvent hébergé sur des plateformes comme GitHub."],
+    ["Fork", "Copie personnelle d'un dépôt existant, permettant d'y travailler indépendamment avant de proposer une contribution."],
+    ["Issue", "Signalement d'un bug ou d'une idée d'amélioration, suivi dans un espace dédié du dépôt."]
+  ];
+
+  var RESOURCES = [
+    { title: "Documentation officielle — Claude Code sur le web", url: "https://code.claude.com/docs/en/claude-code-on-the-web", desc: "Comment fonctionnent les environnements, sessions, triggers et sources dans Claude Code sur le web." },
+    { title: "Claude Code — accès web", url: "https://claude.ai/code", desc: "Lancer et suivre des sessions Claude Code directement depuis le navigateur." },
+    { title: "Claude", url: "https://claude.com/claude-code", desc: "Présentation générale de Claude Code par Anthropic." },
+    { title: "Signaler un problème / obtenir de l'aide", url: "https://github.com/anthropics/claude-code/issues", desc: "Pour toute question ou bug rencontré avec l'outil Claude Code lui-même." }
+  ];
+
+  // ---------- Storage ----------
+  var STORE_KEY = "learn-claude-code-progress-v1";
+  var THEME_KEY = "learn-claude-code-theme-v1";
+
+  function loadProgress(){
+    try{
+      var raw = localStorage.getItem(STORE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveProgress(state){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+  }
+  var progress = loadProgress();
+
+  // ---------- Theme ----------
+  function applyTheme(t){
+    if(t === "light" || t === "dark"){
+      document.documentElement.setAttribute("data-theme", t);
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  }
+  (function initTheme(){
+    var saved = null;
+    try{ saved = localStorage.getItem(THEME_KEY); }catch(e){}
+    applyTheme(saved);
+  })();
+  document.getElementById("themeBtn").addEventListener("click", function(){
+    var current = document.documentElement.getAttribute("data-theme");
+    var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var next;
+    if(!current){ next = prefersDark ? "light" : "dark"; }
+    else if(current === "dark"){ next = "light"; }
+    else { next = "dark"; }
+    applyTheme(next);
+    try{ localStorage.setItem(THEME_KEY, next); }catch(e){}
+  });
+
+  // ---------- Tabs ----------
+  var tabButtons = document.querySelectorAll("#tabs button");
+  var panels = document.querySelectorAll(".panel");
+  tabButtons.forEach(function(btn){
+    btn.addEventListener("click", function(){
+      tabButtons.forEach(function(b){ b.classList.remove("active"); });
+      panels.forEach(function(p){ p.classList.remove("active"); });
+      btn.classList.add("active");
+      document.getElementById("panel-" + btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  // ---------- Render modules ----------
+  function moduleKey(track, idx){ return track + "-" + idx; }
+
+  function updateProgressBar(track, total){
+    var done = 0;
+    for(var i=0;i<total;i++){ if(progress[moduleKey(track,i)]) done++; }
+    document.getElementById("fill-" + track).style.width = (total ? (done/total*100) : 0) + "%";
+    document.getElementById("label-" + track).textContent = done + " / " + total;
+  }
+
+  function renderQuiz(container, quiz, keyPrefix){
+    if(!quiz || !quiz.length) return;
+    var wrap = document.createElement("div");
+    wrap.className = "quiz";
+    quiz.forEach(function(item, qi){
+      var qDiv = document.createElement("div");
+      qDiv.className = "q";
+      var qText = document.createElement("div");
+      qText.className = "qtext";
+      qText.textContent = "Mini-quiz : " + item.q;
+      qDiv.appendChild(qText);
+
+      var explain = document.createElement("div");
+      explain.className = "explain";
+      explain.textContent = item.explain;
+
+      item.options.forEach(function(opt, oi){
+        var label = document.createElement("label");
+        var input = document.createElement("input");
+        input.type = "radio";
+        input.name = keyPrefix + "-q" + qi;
+        input.addEventListener("change", function(){
+          var labels = qDiv.querySelectorAll("label");
+          labels.forEach(function(l, li){
+            l.classList.remove("correct","incorrect");
+            if(li === item.correct) l.classList.add("correct");
+          });
+          if(oi !== item.correct) label.classList.add("incorrect");
+          explain.classList.add("show");
+        });
+        var span = document.createElement("span");
+        span.textContent = opt;
+        label.appendChild(input);
+        label.appendChild(span);
+        qDiv.appendChild(label);
+      });
+
+      qDiv.appendChild(explain);
+      wrap.appendChild(qDiv);
+    });
+    container.appendChild(wrap);
+  }
+
+  function renderTrack(track, data){
+    var listEl = document.getElementById("list-" + track);
+    data.forEach(function(mod, idx){
+      var card = document.createElement("div");
+      card.className = "module";
+
+      var head = document.createElement("div");
+      head.className = "module-head";
+
+      var check = document.createElement("input");
+      check.type = "checkbox";
+      check.checked = !!progress[moduleKey(track, idx)];
+      check.title = "Marquer comme terminé";
+      check.addEventListener("click", function(e){ e.stopPropagation(); });
+      check.addEventListener("change", function(){
+        progress[moduleKey(track, idx)] = check.checked;
+        saveProgress(progress);
+        updateProgressBar(track, data.length);
+      });
+
+      var num = document.createElement("span");
+      num.className = "num";
+      num.textContent = (idx+1).toString().padStart(2,"0");
+
+      var h3 = document.createElement("h3");
+      h3.textContent = mod.title;
+
+      var chev = document.createElement("span");
+      chev.className = "chev";
+      chev.textContent = "▸";
+
+      head.appendChild(check);
+      head.appendChild(num);
+      head.appendChild(h3);
+      head.appendChild(chev);
+
+      var body = document.createElement("div");
+      body.className = "module-body";
+      body.innerHTML = mod.content;
+
+      if(mod.tip){
+        var tip = document.createElement("div");
+        tip.className = "tip";
+        tip.innerHTML = "<b>Astuce —</b> " + mod.tip;
+        body.appendChild(tip);
+      }
+
+      renderQuiz(body, mod.quiz, moduleKey(track, idx));
+
+      head.addEventListener("click", function(){
+        card.classList.toggle("open");
+      });
+
+      card.appendChild(head);
+      card.appendChild(body);
+      listEl.appendChild(card);
+    });
+    updateProgressBar(track, data.length);
+  }
+
+  renderTrack("general", GENERAL);
+  renderTrack("recruiter", RECRUITER);
+
+  // ---------- Glossary ----------
+  var glossaryList = document.getElementById("glossaryList");
+  function renderGlossary(filter){
+    glossaryList.innerHTML = "";
+    var f = (filter || "").toLowerCase();
+    GLOSSARY.forEach(function(pair){
+      if(f && pair[0].toLowerCase().indexOf(f) === -1 && pair[1].toLowerCase().indexOf(f) === -1) return;
+      var div = document.createElement("div");
+      var dt = document.createElement("dt");
+      dt.textContent = pair[0];
+      var dd = document.createElement("dd");
+      dd.textContent = pair[1];
+      div.appendChild(dt);
+      div.appendChild(dd);
+      glossaryList.appendChild(div);
+    });
+  }
+  renderGlossary("");
+  document.getElementById("glossarySearch").addEventListener("input", function(e){
+    renderGlossary(e.target.value);
+  });
+
+  // ---------- Resources ----------
+  var resourceList = document.getElementById("resourceList");
+  RESOURCES.forEach(function(r){
+    var li = document.createElement("li");
+    var a = document.createElement("a");
+    a.href = r.url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = r.title;
+    var p = document.createElement("p");
+    p.textContent = r.desc;
+    li.appendChild(a);
+    li.appendChild(p);
+    resourceList.appendChild(li);
+  });
+
+})();
+</script>
+</body>
+</html>
