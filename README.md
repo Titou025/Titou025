@@ -4,6 +4,7 @@
 - 💞️ I’m looking to collaborate with kind people to share our knowledge
 - 📫 How to reach me tanit.blangi@flowdesk.co
 - 🧰 [Apprendre Claude Code](./learn-claude-code/) — mon outil interactif pour apprendre Claude Code à partir de zéro (parcours général + parcours Talent Acquisition Tech)
+- 🚀 [Maîtriser Claude — Toolkit Pro](./maitriser-claude/) — niveau 2 : prompt engineering, Claude Cowork, automatisations avec Claude Code, bibliothèque de prompts et recettes pour le recrutement tech
 
 <!---
 Titou025/Titou025 is a ✨ special ✨ repository because its `README.md` (this file) appears on your GitHub profile.
