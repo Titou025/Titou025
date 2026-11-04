@@ -127,6 +127,20 @@
   .recipe-card ol{margin:0 0 10px;padding-left:20px;font-size:0.88rem;color:var(--text-muted);}
   .recipe-card ol li{margin-bottom:4px;}
 
+  .warn-card{background:rgba(179,67,47,0.08);border:1px solid var(--danger);border-radius:10px;padding:10px 12px;font-size:0.87rem;color:var(--text);margin:0 0 20px;}
+  .warn-card b{color:var(--danger);}
+  .res-group{margin-bottom:22px;}
+  .res-group h3{font-size:0.95rem;margin:0 0 10px;color:var(--text);}
+  .res-item{background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;}
+  .res-item a{font-weight:600;text-decoration:none;font-size:0.92rem;display:block;margin-top:6px;}
+  .res-item a:hover{text-decoration:underline;}
+  .res-item .desc{font-size:0.85rem;color:var(--text-muted);margin-top:4px;}
+  .res-item .caveat{font-size:0.78rem;color:var(--danger);margin-top:4px;}
+  .badge.officiel{background:var(--accent-2-soft);color:var(--accent-2);}
+  .badge.tiers{background:var(--border);color:var(--text-muted);}
+  .badge.editeur{background:var(--accent-soft);color:var(--accent);}
+  .badge.nonverifie{background:rgba(179,67,47,0.12);color:var(--danger);}
+
   dl.glossary{margin:0;}
   dl.glossary div{background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;}
   dl.glossary dt{font-weight:700;color:var(--accent);font-size:0.92rem;}
@@ -154,6 +168,7 @@
     <button data-tab="codepro">Claude Code Pro</button>
     <button data-tab="library">Bibliothèque de prompts</button>
     <button data-tab="recipes">Automatisations</button>
+    <button data-tab="resources">Ressources &amp; Sourcing</button>
     <button data-tab="glossary">Lexique avancé</button>
   </nav>
 
@@ -225,6 +240,22 @@
       <p style="margin:0;color:var(--text-muted);font-size:0.9rem;">Chaque recette te donne un objectif, les outils nécessaires, et un prompt de départ à copier-coller dans Claude Cowork ou Claude Code. Adapte les détails entre crochets <code>[comme ceci]</code> à ta situation réelle.</p>
     </div>
     <div id="recipeList"></div>
+  </section>
+
+  <!-- RESOURCES -->
+  <section class="panel" id="panel-resources">
+    <div class="intro-card">
+      <h2>Parcours suggéré</h2>
+      <ul>
+        <li><b>1.</b> Commence par Claude Cowork — le plus adapté à ton profil (emails, sheets, recherches), sans code</li>
+        <li><b>2.</b> Ajoute ensuite des skills et des connecteurs (Gmail, Drive, Sheets) pour aller plus loin</li>
+        <li><b>3.</b> Passe à Claude Code seulement si un besoin précis et durable l'exige</li>
+      </ul>
+    </div>
+    <div class="warn-card">
+      <b>⚠️ Avant d'automatiser du sourcing —</b> aucune source fiable n'a pour l'instant été trouvée sur le cadre RGPD applicable au sourcing automatisé en France. Vérifie ce point avec ton équipe juridique / DPO avant de mettre en place un scraping ou un outreach automatisé à grande échelle.
+    </div>
+    <div id="resourceGroups"></div>
   </section>
 
   <!-- GLOSSARY -->
@@ -337,7 +368,7 @@
     {
       title: "Sécurité et confidentialité des données candidats",
       content: "<p>Les données candidats (CV, coordonnées, évaluations) sont sensibles. Avant de connecter un outil ou d'automatiser un envoi, vérifie toujours : quelles données sont partagées, qui peut voir le résultat, et relis systématiquement un email ou un message avant qu'il ne parte automatiquement. Pour toute action irréversible (envoi, suppression, partage externe), garde une étape de validation humaine.</p>",
-      tip: "Règle simple : plus une action est difficile à annuler (envoyer un email à un candidat, supprimer une donnée), plus elle mérite une relecture avant validation.",
+      tip: "Règle simple : plus une action est difficile à annuler (envoyer un email à un candidat, supprimer une donnée), plus elle mérite une relecture avant validation. Point non tranché à ce jour : aucune source fiable n'indique précisément le cadre RGPD applicable au sourcing automatisé en France — vérifie-le avec ton équipe juridique avant d'automatiser une collecte de données candidats à grande échelle (voir l'onglet Ressources &amp; Sourcing).",
       quiz: [{ q: "Avant d'automatiser l'envoi d'un email à des candidats, la bonne pratique est de...", options: ["Laisser l'automatisation envoyer sans relecture dès le premier essai", "Garder une étape de relecture humaine tant que la confiance n'est pas établie", "Ne jamais automatiser d'emails"], correct: 1, explain: "Pour une action difficilement réversible et sensible (données candidats), une relecture humaine reste la pratique la plus sûre, au moins au début." }]
     },
     {
@@ -402,6 +433,7 @@
   var LIBRARY = [
     { cat: "Sourcing", title: "Trouver les bons mots-clés et intitulés", prompt: "Tu es un expert en sourcing tech. Génère 15 intitulés de poste et synonymes utilisés sur le marché pour rechercher des profils \"[intitulé du poste]\", en distinguant les variantes utilisées en France et à l'international. Ajoute aussi 5 technologies ou mots-clés associés souvent mentionnés dans les CV de ce type de profil.", note: "Utile pour élargir tes recherches au-delà de l'intitulé exact du poste." },
     { cat: "Sourcing", title: "Analyser un marché de talents", prompt: "Fais une synthèse du marché des talents pour le poste \"[intitulé]\" dans la zone \"[ville/pays]\" : rareté estimée du profil, fourchette de rémunération généralement pratiquée, et 3 arguments pour rendre l'offre attractive face à la concurrence. Précise les limites de ton estimation et où je devrais vérifier ces données.", note: "Demande toujours la vérification des chiffres sensibles (salaires) auprès d'une source à jour." },
+    { cat: "Sourcing", title: "Requête de recherche X-ray (GitHub)", prompt: "Génère une requête de recherche Google \"X-ray\" pour trouver des profils GitHub actifs correspondant à \"[intitulé du poste]\" avec la stack \"[technologies]\". Utilise des opérateurs comme site:github.com et des mots-clés pertinents (README, langage de code dominant, mots-clés de bio).", note: "Technique documentée par plusieurs éditeurs de sourcing technique (Reczee, HeroHunt) — vérifie toujours les conditions d'utilisation de la plateforme avant une collecte à grande échelle." },
     { cat: "Rédaction", title: "Rédiger une fiche de poste inclusive", prompt: "Rédige une fiche de poste pour \"[intitulé du poste]\". Contexte entreprise : [description courte]. Inclue : résumé du poste, missions principales, profil recherché, ce que l'entreprise offre. Ton professionnel et inclusif : évite les superlatifs du type \"rockstar\"/\"ninja\" qui réduisent les candidatures de certains groupes, et relis la formulation pour qu'elle n'implique pas un genre ou un âge implicite.", note: "Les recherches montrent que la formulation d'une offre influence qui postule — ce prompt intègre ce point dès le départ." },
     { cat: "Rédaction", title: "Message d'approche LinkedIn personnalisé", prompt: "Rédige un message d'approche court (max 80 mots) pour contacter un profil \"[intitulé]\" sur LinkedIn, en mentionnant un point précis de son parcours : \"[élément du profil]\". Le message doit donner envie d'échanger sans paraître copié-collé, ton direct et respectueux de son temps.", note: "Remplace toujours [élément du profil] par un vrai détail — jamais un message générique." },
     { cat: "Screening CV", title: "Évaluer un CV face à une fiche de poste", prompt: "Voici une fiche de poste et un CV. Évalue l'adéquation du candidat critère par critère (compétences techniques, expérience, soft skills visibles), donne un score sur 10 pour chacun avec une justification courte, puis une recommandation globale (à avancer / à creuser / à écarter) en une phrase.\n\n<fiche_de_poste>\n[coller la fiche de poste]\n</fiche_de_poste>\n\n<cv>\n[coller le CV]\n</cv>", note: "Les balises <fiche_de_poste> et <cv> évitent toute confusion entre les deux documents collés." },
@@ -493,6 +525,20 @@
         "Une fois satisfaite du format, demande à Claude de la générer automatiquement la veille de chaque entretien planifié."
       ],
       prompt: "Chaque jour, vérifie si j'ai un entretien candidat prévu le lendemain d'après mon tracker [lien du sheet]. Si oui, prépare une fiche de prise d'entretien pour ce candidat à partir de son CV et de la fiche de poste associée, et envoie-la moi par email la veille au soir."
+    },
+    {
+      title: "Sourcer hors LinkedIn (GitHub X-ray & profils IA)",
+      goal: "Élargir ta recherche de profils tech au-delà de LinkedIn, en allant chercher où les développeurs sont réellement actifs.",
+      level: "nocode", levelLabel: "Sans code (Cowork/Chat)",
+      tools: ["Recherche web", "GitHub", "Hugging Face"],
+      steps: [
+        "Identifie la stack technique précise du poste (langages, frameworks, outils).",
+        "Demande à Claude de générer une requête de recherche Google \"X-ray\" ciblant des profils GitHub avec cette stack.",
+        "Pour un profil IA/ML, élargis à Hugging Face, arXiv, OpenReview et Kaggle.",
+        "Respecte les conditions d'utilisation de chaque plateforme : ne jamais scraper en masse pour un outreach de spam — GitHub l'interdit explicitement.",
+        "Vérifie le cadre légal de ta collecte de données candidats avec ton équipe juridique avant d'industrialiser ce process."
+      ],
+      prompt: "Tu es un expert en sourcing technique. Je recherche un profil \"[intitulé, ex : ingénieur ML]\" maîtrisant \"[stack, ex : Python, PyTorch]\". Génère : 1) une requête de recherche Google de type X-ray ciblant des profils GitHub pertinents (site:github.com + mots-clés), 2) 3 plateformes alternatives à LinkedIn où ce type de profil est actif (ex : Hugging Face, arXiv, Kaggle selon le profil), avec pour chacune une façon concrète de rechercher sans enfreindre ses conditions d'utilisation."
     }
   ];
 
@@ -524,6 +570,27 @@
   ];
 
   var LIBRARY_CATEGORIES = ["Toutes", "Sourcing", "Rédaction", "Screening CV", "Entretien", "Communication", "Reporting", "Diversité & biais"];
+
+  var RESOURCES_PRO = [
+    { group: "Apprendre Claude (officiel & tiers)", items: [
+      { title: "Bien démarrer avec Claude Cowork (guide officiel Anthropic)", url: "https://claude.com/blog/best-practices-for-getting-started-with-claude-cowork", badge: "Officiel Anthropic", badgeClass: "officiel", desc: "Explique quand utiliser Cowork plutôt que le chat ou Claude Code, et comment choisir quoi lui déléguer." },
+      { title: "Anthropic Academy — cours gratuits avec certificat", url: "https://en.kocpc.com.tw/?p=2987", badge: "Non vérifié (source secondaire)", badgeClass: "nonverifie", desc: "13 cours gratuits à son rythme annoncés (dont Claude 101, Claude Code in Action, Agent Skills, MCP).", caveat: "Relayé par une source secondaire, non vérifié sur la page officielle Anthropic à ce jour — à confirmer avant de t'y fier." },
+      { title: "Cours gratuit pour non-techniques, dans Claude Code", url: "https://ccforeveryone.com/", badge: "Tiers, gratuit", badgeClass: "tiers", desc: "Se suit directement dans Claude Code, sans expérience de code ni de terminal, avec un glossaire en langage simple (skills, agents, MCP, plugins)." },
+      { title: "Cours Cowork gratuit (AirTree)", url: "https://www.airtree.vc/open-source-vc/claude-cowork-course", badge: "Tiers, gratuit", badgeClass: "tiers", desc: "Cours Cowork sans prérequis technique, par le fonds AirTree Ventures." },
+      { title: "Claude Code for Absolute Beginners (Every)", url: "https://every.to/events/claude-code-101-2", badge: "Payant", badgeClass: "tiers", desc: "Pensé pour les non-développeurs, couvre à la fois Claude Code et Cowork." },
+      { title: "Cours Cowork sur Udemy", url: "https://www.udemy.com/course/claude-cowork-claude-dispatch/", badge: "Payant", badgeClass: "tiers", desc: "Inclut la planification de tâches récurrentes dans Cowork." }
+    ]},
+    { group: "Claude pour le recrutement tech", items: [
+      { title: "Workflows de recrutement avec Claude Code (Crustdata)", url: "https://crustdata.com/blog/recruiting-workflows-claude", badge: "Éditeur d'outil", badgeClass: "editeur", desc: "Décrit un workflow : critères écrits une fois, requête sur une base de profils, enrichissement, puis shortlist.", caveat: "Publié par un éditeur d'outil de données — à lire avec esprit critique sur les bénéfices annoncés." },
+      { title: "Pack \"3-Agent Recruiting Team\" pour Claude Projects", url: "https://impartial-money-fa9.notion.site/The-3-Agent-Recruiting-Team-for-Claude-3259112c6a1f805fa428caf7d372d025", badge: "Tiers, non vérifié", badgeClass: "nonverifie", desc: "Pack de 3 agents (sourcing, screening, outreach) à copier dans un Claude Project.", caveat: "Les taux de réponse annoncés (20 à 35 %) sont une promesse de l'auteur, non démontrée indépendamment — à tester toi-même avant de t'y fier." },
+      { title: "Guide MCP et skills pour recruteurs (HeroHunt)", url: "https://www.herohunt.ai/blog/recruiting-with-claude-mcps-skills-agents-2026", badge: "Éditeur d'outil", badgeClass: "editeur", desc: "Panorama de MCP et de skills applicables au recrutement." }
+    ]},
+    { group: "Sourcer au-delà de LinkedIn", items: [
+      { title: "Sourcer sur GitHub : guide recruteur (Reczee)", url: "https://www.reczee.com/blog/sourcing-on-github-a-recruiters-guide", badge: "Éditeur d'outil", badgeClass: "editeur", desc: "Recherche Google \"X-ray\", mining par stack technique, filtres de recherche avancés sur GitHub." },
+      { title: "Sourcer des profils IA sur GitHub (HeroHunt)", url: "https://www.herohunt.ai/blog/how-to-source-ai-engineers-on-github-2026/", badge: "Éditeur d'outil", badgeClass: "editeur", desc: "Pour les profils IA/ML : Hugging Face, arXiv, OpenReview, Kaggle.", caveat: "Le même guide précise que GitHub interdit le scraping à des fins de spam vers les développeurs — à respecter strictement." },
+      { title: "Outils de sourcing technique (Metaview)", url: "https://www.metaview.ai/resources/blog/developer-sourcing-tools-technical-recruiters", badge: "Éditeur d'outil", badgeClass: "editeur", desc: "Présente des outils comme AmazingHiring (GitHub, StackOverflow, Kaggle) et SeekOut (brevets, publications)." }
+    ]}
+  ];
 
   // ================= STORAGE =================
   var STORE_KEY = "maitriser-claude-progress-v1";
@@ -843,6 +910,47 @@
     card.appendChild(box);
 
     recipeListEl.appendChild(card);
+  });
+
+  // ================= RESOURCES =================
+  var resourceGroupsEl = document.getElementById("resourceGroups");
+  RESOURCES_PRO.forEach(function(group){
+    var gdiv = document.createElement("div");
+    gdiv.className = "res-group";
+    var h3 = document.createElement("h3");
+    h3.textContent = group.group;
+    gdiv.appendChild(h3);
+    group.items.forEach(function(item){
+      var card = document.createElement("div");
+      card.className = "res-item";
+
+      var badge = document.createElement("span");
+      badge.className = "badge " + item.badgeClass;
+      badge.textContent = item.badge;
+      card.appendChild(badge);
+
+      var a = document.createElement("a");
+      a.href = item.url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = item.title;
+      card.appendChild(a);
+
+      var desc = document.createElement("div");
+      desc.className = "desc";
+      desc.textContent = item.desc;
+      card.appendChild(desc);
+
+      if(item.caveat){
+        var caveat = document.createElement("div");
+        caveat.className = "caveat";
+        caveat.textContent = "⚠ " + item.caveat;
+        card.appendChild(caveat);
+      }
+
+      gdiv.appendChild(card);
+    });
+    resourceGroupsEl.appendChild(gdiv);
   });
 
   // ================= GLOSSARY =================
