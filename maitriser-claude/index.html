@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maîtriser Claude — Toolkit Pro Talent Acquisition</title>
+<meta name="description" content="Outil avancé pour maîtriser Claude en pro : prompt engineering, Claude Cowork, automatisations avec Claude Code, bibliothèque de prompts et recettes pour le recrutement tech.">
+<style>
+  :root{
+    --bg:#f7f7f5;
+    --bg-elevated:#ffffff;
+    --text:#1f1d1a;
+    --text-muted:#6b6558;
+    --border:#e4e0d8;
+    --accent:#c15f3c;
+    --accent-2:#3d6b8a;
+    --accent-soft:#f3e2da;
+    --accent-2-soft:#dfeaf1;
+    --accent-contrast:#ffffff;
+    --success:#3f7a53;
+    --success-soft:#e1efe4;
+    --danger:#b3432f;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(31,29,26,0.06),0 8px 24px rgba(31,29,26,0.05);
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#181614; --bg-elevated:#221f1c; --text:#f1ede6; --text-muted:#a89f8f;
+      --border:#3a352e; --accent:#e08a63; --accent-2:#7fb3d6; --accent-soft:#3a2a22;
+      --accent-2-soft:#1f2e38; --accent-contrast:#1f1512; --success:#7cc294;
+      --success-soft:#1f2e22; --danger:#e08a76; --shadow:0 1px 2px rgba(0,0,0,0.3),0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#181614; --bg-elevated:#221f1c; --text:#f1ede6; --text-muted:#a89f8f;
+    --border:#3a352e; --accent:#e08a63; --accent-2:#7fb3d6; --accent-soft:#3a2a22;
+    --accent-2-soft:#1f2e38; --accent-contrast:#1f1512; --success:#7cc294;
+    --success-soft:#1f2e22; --danger:#e08a76; --shadow:0 1px 2px rgba(0,0,0,0.3),0 8px 24px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);}
+  code{font-family:var(--mono);background:var(--accent-soft);padding:1px 5px;border-radius:5px;font-size:0.88em;}
+  .wrap{max-width:920px;margin:0 auto;padding:24px 16px 80px;}
+  header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:10px;flex-wrap:wrap;}
+  header.top h1{font-size:1.6rem;margin:0 0 6px;}
+  header.top p{margin:0;color:var(--text-muted);max-width:60ch;font-size:0.95rem;}
+  .theme-btn{border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);border-radius:999px;padding:8px 14px;font-size:0.85rem;cursor:pointer;white-space:nowrap;}
+  .theme-btn:hover{border-color:var(--accent);}
+  .back-link{display:inline-block;margin-bottom:18px;font-size:0.85rem;color:var(--text-muted);text-decoration:none;}
+  .back-link:hover{color:var(--accent);}
+
+  nav.tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);overflow-x:auto;}
+  nav.tabs button{appearance:none;border:none;background:transparent;color:var(--text-muted);font-size:0.9rem;font-weight:600;padding:10px 4px;margin-right:18px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
+  nav.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+  section.panel{display:none;}
+  section.panel.active{display:block;}
+
+  .intro-card{background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:24px;box-shadow:var(--shadow);}
+  .intro-card h2{margin-top:0;font-size:1.15rem;}
+  .intro-card ul{margin:8px 0 0;padding-left:20px;color:var(--text-muted);}
+  .intro-card li{margin-bottom:4px;}
+
+  .progress-row{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+  .progress-track{flex:1;height:8px;background:var(--border);border-radius:999px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--accent);border-radius:999px;transition:width .3s ease;}
+  .progress-label{font-size:0.82rem;color:var(--text-muted);white-space:nowrap;}
+
+  .module{background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);}
+  .module-head{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none;}
+  .module-head input[type="checkbox"]{width:20px;height:20px;flex:none;accent-color:var(--success);cursor:pointer;}
+  .module-head .num{font-size:0.75rem;color:var(--text-muted);font-weight:700;flex:none;width:22px;}
+  .module-head h3{margin:0;font-size:1rem;flex:1;}
+  .module-head .chev{color:var(--text-muted);transition:transform .2s ease;flex:none;}
+  .module.open .chev{transform:rotate(90deg);}
+  .module-body{display:none;padding:0 16px 18px 58px;color:var(--text-muted);font-size:0.93rem;}
+  .module.open .module-body{display:block;}
+  .module-body p{margin:0 0 10px;}
+  .module-body ul{margin:0 0 10px;padding-left:18px;}
+  .tip{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:0.87rem;color:var(--text);margin:10px 0;}
+  .tip b{color:var(--accent);}
+  .example{border-radius:10px;padding:10px 12px;font-size:0.85rem;margin:8px 0;border:1px solid var(--border);}
+  .example.weak{background:rgba(179,67,47,0.06);border-color:var(--danger);}
+  .example.strong{background:var(--success-soft);border-color:var(--success);}
+  .example b{display:block;font-size:0.72rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+  .example.weak b{color:var(--danger);}
+  .example.strong b{color:var(--success);}
+
+  .quiz{border-top:1px dashed var(--border);margin-top:12px;padding-top:12px;}
+  .quiz .q{margin-bottom:14px;}
+  .quiz .qtext{font-weight:600;color:var(--text);margin-bottom:6px;font-size:0.9rem;}
+  .quiz label{display:flex;gap:8px;align-items:flex-start;padding:7px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;font-size:0.87rem;background:var(--bg);}
+  .quiz label:hover{border-color:var(--accent);}
+  .quiz label.correct{border-color:var(--success);background:var(--success-soft);}
+  .quiz label.incorrect{border-color:var(--danger);}
+  .quiz input{margin-top:2px;}
+  .quiz .explain{display:none;font-size:0.83rem;margin-top:4px;padding:8px 10px;border-radius:8px;background:var(--bg);border:1px solid var(--border);}
+  .quiz .explain.show{display:block;}
+
+  .search-bar{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);font-size:0.95rem;margin-bottom:14px;}
+  .chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+  .chip{border:1px solid var(--border);background:var(--bg-elevated);color:var(--text-muted);border-radius:999px;padding:6px 12px;font-size:0.82rem;cursor:pointer;}
+  .chip.active{background:var(--accent);color:var(--accent-contrast);border-color:var(--accent);}
+
+  .prompt-card, .recipe-card{background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:var(--shadow);}
+  .prompt-card .tag{display:inline-block;background:var(--accent-2-soft);color:var(--accent-2);font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:3px 9px;border-radius:999px;margin-bottom:8px;}
+  .prompt-card h3{margin:0 0 8px;font-size:1rem;}
+  .prompt-box{position:relative;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 44px 12px 12px;font-family:var(--mono);font-size:0.82rem;white-space:pre-wrap;color:var(--text);line-height:1.5;}
+  .copy-btn{position:absolute;top:8px;right:8px;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text-muted);border-radius:7px;padding:5px 9px;font-size:0.72rem;cursor:pointer;}
+  .copy-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .copy-btn.copied{background:var(--success-soft);border-color:var(--success);color:var(--success);}
+  .prompt-card .note{font-size:0.83rem;color:var(--text-muted);margin-top:8px;}
+
+  .recipe-card h3{margin:0 0 4px;font-size:1.05rem;}
+  .recipe-card .goal{color:var(--text-muted);font-size:0.9rem;margin-bottom:10px;}
+  .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+  .badge{font-size:0.74rem;font-weight:700;padding:3px 9px;border-radius:999px;}
+  .badge.nocode{background:var(--success-soft);color:var(--success);}
+  .badge.code{background:var(--accent-soft);color:var(--accent);}
+  .tool-tag{font-size:0.74rem;background:var(--border);color:var(--text-muted);padding:3px 9px;border-radius:999px;}
+  .recipe-card ol{margin:0 0 10px;padding-left:20px;font-size:0.88rem;color:var(--text-muted);}
+  .recipe-card ol li{margin-bottom:4px;}
+
+  dl.glossary{margin:0;}
+  dl.glossary div{background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;}
+  dl.glossary dt{font-weight:700;color:var(--accent);font-size:0.92rem;}
+  dl.glossary dd{margin:4px 0 0;color:var(--text-muted);font-size:0.88rem;}
+
+  footer{margin-top:40px;text-align:center;color:var(--text-muted);font-size:0.8rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="back-link" href="../learn-claude-code/">&larr; Retour au parcours débutant</a>
+
+  <header class="top">
+    <div>
+      <h1>Maîtriser Claude — Toolkit Pro</h1>
+      <p>Niveau 2 : prompt engineering, Claude Cowork, automatisations avec Claude Code — pour devenir une recruteuse qui maîtrise Claude comme une pro, sans background engineering.</p>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button">🌓 Thème</button>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="prompting" class="active">Prompt Engineering</button>
+    <button data-tab="cowork">Claude Cowork</button>
+    <button data-tab="codepro">Claude Code Pro</button>
+    <button data-tab="library">Bibliothèque de prompts</button>
+    <button data-tab="recipes">Automatisations</button>
+    <button data-tab="glossary">Lexique avancé</button>
+  </nav>
+
+  <!-- PROMPT ENGINEERING -->
+  <section class="panel active" id="panel-prompting">
+    <div class="intro-card">
+      <h2>Ce que tu vas maîtriser</h2>
+      <ul>
+        <li>Pourquoi la formulation change radicalement le résultat</li>
+        <li>L'anatomie d'un prompt pro : contexte, rôle, tâche, format, contraintes, exemples</li>
+        <li>Les techniques utilisées par les pros : rôle, exemples, raisonnement guidé, balises</li>
+        <li>Comment itérer efficacement plutôt que tout réécrire à chaque fois</li>
+      </ul>
+    </div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="fill-prompting"></div></div>
+      <span class="progress-label" id="label-prompting">0 / 0</span>
+    </div>
+    <div id="list-prompting"></div>
+  </section>
+
+  <!-- COWORK -->
+  <section class="panel" id="panel-cowork">
+    <div class="intro-card">
+      <h2>Ce que tu vas maîtriser</h2>
+      <ul>
+        <li>Ce qu'est Claude Cowork et à quoi ça sert pour une équipe métier</li>
+        <li>Comment connecter tes outils du quotidien (Gmail, Sheets, Notion...) en toute sécurité</li>
+        <li>Comment automatiser des process recruteur sans écrire une ligne de code</li>
+        <li>Quand utiliser Cowork vs quand passer à Claude Code</li>
+      </ul>
+    </div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="fill-cowork"></div></div>
+      <span class="progress-label" id="label-cowork">0 / 0</span>
+    </div>
+    <div id="list-cowork"></div>
+  </section>
+
+  <!-- CODE PRO -->
+  <section class="panel" id="panel-codepro">
+    <div class="intro-card">
+      <h2>Ce que tu vas maîtriser</h2>
+      <ul>
+        <li>Le mindset "automatisation" : repérer ce qui vaut la peine d'être automatisé</li>
+        <li>CLAUDE.md, skills et sous-agents, appliqués à des cas recruteur concrets</li>
+        <li>Connecter Claude à tes vrais outils via MCP (Gmail, Sheets, Notion, GitHub)</li>
+        <li>Construire et déployer un petit outil, de bout en bout</li>
+      </ul>
+    </div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="fill-codepro"></div></div>
+      <span class="progress-label" id="label-codepro">0 / 0</span>
+    </div>
+    <div id="list-codepro"></div>
+  </section>
+
+  <!-- LIBRARY -->
+  <section class="panel" id="panel-library">
+    <input type="search" class="search-bar" id="librarySearch" placeholder="Chercher un prompt (ex : refus, CV, fiche de poste...)">
+    <div class="chip-row" id="libraryChips"></div>
+    <div id="libraryList"></div>
+  </section>
+
+  <!-- RECIPES -->
+  <section class="panel" id="panel-recipes">
+    <div class="intro-card">
+      <h2>Comment utiliser ces recettes</h2>
+      <p style="margin:0;color:var(--text-muted);font-size:0.9rem;">Chaque recette te donne un objectif, les outils nécessaires, et un prompt de départ à copier-coller dans Claude Cowork ou Claude Code. Adapte les détails entre crochets <code>[comme ceci]</code> à ta situation réelle.</p>
+    </div>
+    <div id="recipeList"></div>
+  </section>
+
+  <!-- GLOSSARY -->
+  <section class="panel" id="panel-glossary">
+    <input type="search" class="search-bar" id="glossarySearch" placeholder="Chercher un terme (ex : few-shot, RAG, connecteur...)">
+    <dl class="glossary" id="glossaryList"></dl>
+  </section>
+
+  <footer>Progression et préférences sauvegardées localement dans ton navigateur — rien n'est envoyé ailleurs.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ================= DATA =================
+
+  var PROMPTING = [
+    {
+      title: "Pourquoi le prompt change tout",
+      content: "<p>Avec exactement le même modèle, deux formulations différentes donnent deux résultats radicalement différents. Un prompt, c'est comme un brief donné à un freelance : plus il est flou, plus le résultat sera générique et plus tu devras le refaire.</p><p>La bonne nouvelle : écrire un bon prompt est une compétence qui s'apprend vite, et qui ne nécessite aucune connaissance en code.</p>",
+      tip: "Un prompt vague produit une réponse générique. Un prompt précis produit un travail déjà utilisable.",
+      quiz: [{ q: "Un prompt vague a tendance à produire...", options: ["Toujours exactement le résultat attendu", "Une réponse générique qu'il faut ensuite retravailler", "Une erreur systématique"], correct: 1, explain: "Moins Claude a de contexte et de contraintes, plus il doit combler les blancs avec des hypothèses génériques." }]
+    },
+    {
+      title: "L'anatomie d'un prompt pro",
+      content: "<p>Un prompt efficace contient en général 5 éléments :</p><ul><li><b>Contexte</b> — la situation (secteur, entreprise, contrainte)</li><li><b>Rôle</b> — qui Claude doit incarner (ex : \"recruteur tech senior\")</li><li><b>Tâche</b> — ce qu'il doit produire précisément</li><li><b>Format de sortie</b> — tableau, email, liste, JSON...</li><li><b>Contraintes</b> — ton, longueur, ce qu'il faut éviter</li></ul><p>Tu n'as pas besoin des 5 à chaque fois, mais plus la tâche est importante, plus il vaut la peine de les expliciter.</p>",
+      tip: "Garde ce modèle en tête comme un ticket de brief : Contexte → Rôle → Tâche → Format → Contraintes.",
+      quiz: [{ q: "Préciser le format de sortie attendu (tableau, email, liste...) sert surtout à...", options: ["Impressionner Claude", "Obtenir une réponse directement réutilisable sans la reformater à la main", "Rien, Claude choisit toujours le meilleur format"], correct: 1, explain: "Demander explicitement un format (ex : tableau à copier dans un Sheet) évite un aller-retour de reformatage manuel." }]
+    },
+    {
+      title: "Donner un rôle à Claude (role prompting)",
+      content: "<p>Démarrer par \"Tu es un recruteur tech senior spécialisé en ingénierie logicielle, avec 10 ans d'expérience\" oriente le vocabulaire, le niveau de détail et le ton de la réponse. C'est une des techniques les plus simples et les plus efficaces.</p>",
+      tip: "Teste la différence toi-même : pose la même question avec et sans rôle, et compare.",
+      examples: [
+        { type: "weak", label: "Faible", text: "Écris une fiche de poste pour un développeur." },
+        { type: "strong", label: "Fort", text: "Tu es recruteur tech senior dans une scale-up fintech. Rédige une fiche de poste pour un développeur backend Python, ton direct et inclusif, pour une audience de développeurs expérimentés qui reçoivent 10 offres par semaine." }
+      ],
+      quiz: [{ q: "Donner un rôle à Claude (\"Tu es un recruteur senior...\") sert principalement à...", options: ["Calibrer le ton et le niveau de détail de la réponse", "Rendre la réponse plus rapide à générer", "Remplacer le besoin de donner du contexte"], correct: 0, explain: "Le rôle oriente le registre de langue et les priorités de la réponse, mais ne remplace pas un contexte métier précis." }]
+    },
+    {
+      title: "Le few-shot : donner des exemples",
+      content: "<p>Montrer 1 ou 2 exemples du résultat que tu attends (\"few-shot\") améliore énormément la cohérence, surtout pour des tâches répétitives comme la rédaction d'emails type. Claude imite le ton, la structure et le niveau de détail de tes exemples.</p>",
+      tip: "Si tu rédiges souvent le même type de message (relance, refus, invitation), garde 1-2 \"bons exemples\" sous la main à coller dans le prompt.",
+      quiz: [{ q: "Donner 1-2 exemples du résultat attendu dans le prompt s'appelle...", options: ["Le \"few-shot prompting\"", "Le \"role prompting\"", "Le \"chain of thought\""], correct: 0, explain: "Le few-shot consiste à fournir quelques exemples concrets du résultat souhaité pour que le modèle en imite le style et la structure." }]
+    },
+    {
+      title: "Demander un raisonnement étape par étape",
+      content: "<p>Pour une tâche d'analyse (ex : évaluer un CV par rapport à une fiche de poste), demander à Claude de raisonner étape par étape avant de conclure (\"analyse chaque critère un par un, puis donne ta conclusion\") donne des résultats plus fiables et plus faciles à vérifier qu'une réponse directe.</p>",
+      tip: "Cette technique s'appelle le \"chain of thought\" : elle rend le raisonnement visible, donc vérifiable par toi.",
+      quiz: [{ q: "Demander un raisonnement étape par étape est surtout utile pour...", options: ["Les tâches d'analyse ou de comparaison complexes", "Écrire un simple message de bienvenue", "Traduire un mot en anglais"], correct: 0, explain: "Sur des tâches simples c'est inutile ; sur des tâches d'analyse ou de jugement, ça améliore la fiabilité et la vérifiabilité du résultat." }]
+    },
+    {
+      title: "Structurer la sortie pour la réutiliser directement",
+      content: "<p>Demande explicitement un format exploitable : \"réponds sous forme de tableau avec les colonnes Nom, Score, Justification\", ou \"réponds en Markdown avec des titres ##\". Tu peux alors copier-coller directement le résultat dans un Google Sheet, Notion, ou un email, sans reformater à la main.</p>",
+      tip: "Dans Claude Cowork, demander un format compatible (tableau, liste à puces) permet souvent de coller le résultat directement dans ton outil.",
+      quiz: [{ q: "Pour pouvoir coller un résultat directement dans un tableau, la meilleure pratique est de...", options: ["Laisser Claude choisir le format librement", "Demander explicitement un format tableau avec les colonnes voulues", "Reformater systématiquement à la main après coup"], correct: 1, explain: "Spécifier le format en amont (colonnes précises) évite le travail de reformatage après coup." }]
+    },
+    {
+      title: "Utiliser des balises pour séparer les sources",
+      content: "<p>Quand ton prompt mélange plusieurs blocs d'information (une fiche de poste + un CV, par exemple), sépare-les avec des balises simples type <code>&lt;fiche_de_poste&gt;...&lt;/fiche_de_poste&gt;</code> et <code>&lt;cv&gt;...&lt;/cv&gt;</code>. Claude comprend mieux ce qui appartient à quoi, et le risque de confusion entre les deux textes diminue nettement.</p>",
+      tip: "Tu retrouveras cette astuce dans plusieurs prompts de la bibliothèque — elle est particulièrement utile dès que tu colles plusieurs documents dans un seul message.",
+      quiz: [{ q: "Pourquoi séparer plusieurs documents collés dans un prompt avec des balises ?", options: ["C'est purement esthétique", "Pour que Claude ne confonde pas quel passage appartient à quel document", "C'est obligatoire techniquement, sinon Claude refuse de répondre"], correct: 1, explain: "Les balises aident le modèle à distinguer clairement les différentes sources d'information que tu lui fournis dans un même message." }]
+    },
+    {
+      title: "Itérer plutôt que tout réécrire",
+      content: "<p>Si le résultat n'est pas parfait, inutile de recommencer à zéro : donne un retour précis (\"trop formel, rends-le plus chaleureux\", \"ajoute un exemple chiffré\", \"raccourcis de moitié\"). Claude garde le contexte de la conversation et ajuste uniquement ce qu'il faut.</p>",
+      tip: "Penser \"retour de relecture\" plutôt que \"nouvelle commande\" : c'est plus rapide et le résultat converge plus vite vers ce que tu veux.",
+      quiz: [{ q: "Face à un résultat imparfait, la méthode la plus efficace est...", options: ["Tout réécrire depuis une page blanche à chaque fois", "Donner un retour précis sur ce qui doit changer", "Abandonner et le faire soi-même"], correct: 1, explain: "Un retour ciblé (\"trop long\", \"change le ton\") permet à Claude d'ajuster sans repartir de zéro, en gardant ce qui marchait déjà." }]
+    },
+    {
+      title: "Les pièges les plus fréquents",
+      content: "<ul><li><b>Trop vague</b> — \"aide-moi à recruter\" ne donne rien d'exploitable</li><li><b>Trop de choses dans un seul message</b> — mieux vaut enchaîner plusieurs demandes précises qu'une seule demande fourre-tout</li><li><b>Oublier le contexte métier</b> — le secteur, la taille d'équipe, l'urgence du poste changent beaucoup la réponse utile</li><li><b>Ne pas vérifier les faits</b> — Claude peut se tromper sur des chiffres ou des données précises (salaires, lois) : vérifie toujours une information factuelle sensible avant de t'en servir</li></ul>",
+      tip: "Un bon réflexe : si tu hésites à vérifier une info donnée par Claude (chiffre, référence légale...), vérifie-la. C'est la même rigueur qu'avec une source humaine.",
+      quiz: [{ q: "Si Claude te donne un chiffre précis et sensible (ex : un seuil légal), la bonne pratique est de...", options: ["Le prendre pour argent comptant", "Le vérifier auprès d'une source fiable avant de l'utiliser", "Ne jamais poser ce type de question"], correct: 1, explain: "Comme toute source, les informations factuelles précises et sensibles méritent une vérification avant d'être utilisées en décision." }]
+    }
+  ];
+
+  var COWORK = [
+    {
+      title: "Qu'est-ce que Claude Cowork",
+      content: "<p>Claude Cowork est l'espace de travail collaboratif de Claude, pensé pour les équipes métier — pas seulement pour les développeurs. Il te permet de connecter tes outils du quotidien et de mettre en place des automatisations en décrivant ce que tu veux en langage naturel, sans écrire de code.</p><p>À l'inscription, tu choisis ton métier (ex : Talent Acquisition), ce qui te propose des plugins et réglages déjà adaptés à ton rôle plutôt que de repartir d'une page blanche.</p>",
+      tip: "Cowork = le bon endroit pour des automatisations de process métier connectées à tes outils, sans code.",
+      quiz: [{ q: "Claude Cowork est surtout pensé pour...", options: ["Uniquement les équipes techniques", "Les équipes métier, pour automatiser leurs process sans écrire de code", "Remplacer entièrement les outils comme Gmail ou Notion"], correct: 1, explain: "Cowork cible les équipes métier : il orchestre tes outils existants plutôt que de les remplacer." }]
+    },
+    {
+      title: "Les connecteurs : brancher tes outils du quotidien",
+      content: "<p>Un <b>connecteur</b> relie Claude à un outil que tu utilises déjà : Gmail (lire/rédiger des emails), Google Sheets et Drive (tes trackers et documents), Notion (ta base de connaissance process), GitHub (si tu collabores avec des devs). Une fois connecté et autorisé par toi, Claude peut lire et agir sur ces outils pour accomplir une tâche que tu décris.</p>",
+      tip: "Un connecteur ne donne accès qu'à ce que tu autorises explicitement — tu gardes la main sur ce qui est partagé.",
+      quiz: [{ q: "Un connecteur (Gmail, Sheets, Notion...) permet à Claude de...", options: ["Accéder automatiquement à tout ton ordinateur", "Lire et agir sur cet outil précis, avec ton autorisation", "Remplacer ton compte utilisateur"], correct: 1, explain: "Chaque connecteur est scopé à l'outil concerné et nécessite ton autorisation — ce n'est pas un accès généralisé." }]
+    },
+    {
+      title: "Les rôles et plugins pour ton métier",
+      content: "<p>À l'onboarding, le choix de ton rôle (Talent Acquisition, par exemple) installe des plugins pensés pour ce métier : modèles, process ou outils déjà configurés pour les tâches recruteur les plus fréquentes. Tu peux explorer d'autres plugins dans la marketplace selon tes besoins précis.</p>",
+      tip: "Si un plugin ne correspond pas exactement à ton process, tu peux toujours décrire tes besoins en langage naturel plutôt que de forcer le plugin par défaut.",
+      quiz: [{ q: "Choisir un rôle à l'onboarding de Cowork sert à...", options: ["Bloquer l'accès à certaines fonctionnalités", "Pré-configurer des outils adaptés à ton métier, pour gagner du temps", "Changer le modèle Claude utilisé"], correct: 1, explain: "Le rôle oriente les plugins proposés par défaut pour correspondre aux besoins typiques de ce métier." }]
+    },
+    {
+      title: "Travailler en équipe dans un espace partagé",
+      content: "<p>Cowork permet de partager un espace de travail avec ton équipe recrutement : une mémoire commune du contexte et des process, pour éviter de réexpliquer les mêmes informations à chaque nouvelle conversation, et pour que les automatisations mises en place profitent à toute l'équipe, pas seulement à toi.</p>",
+      tip: "Documente une fois les règles de ton équipe (ton des emails, critères d'évaluation standard) pour que toute l'équipe en bénéficie.",
+      quiz: [{ q: "L'intérêt principal d'un espace de travail partagé en équipe est...", options: ["Que chacun reparte de zéro à chaque conversation", "Garder un contexte et des process communs réutilisables par toute l'équipe", "Limiter l'usage de Claude à une seule personne"], correct: 1, explain: "Un espace partagé évite de dupliquer le travail de contextualisation pour chaque membre de l'équipe." }]
+    },
+    {
+      title: "Automatiser sans écrire de code",
+      content: "<p>Dans Cowork, tu n'as pas besoin d'écrire de script : tu décris le résultat voulu (\"chaque lundi matin, fais-moi un résumé des candidatures reçues la semaine précédente\") et Claude orchestre les connecteurs nécessaires pour y arriver. C'est la différence principale avec Claude Code, qui demande de construire un outil sur-mesure.</p>",
+      tip: "Commence toujours petit : une automatisation simple et fiable vaut mieux qu'un processus complexe que tu ne peux pas vérifier.",
+      quiz: [{ q: "Dans Cowork, pour mettre en place une automatisation, il faut principalement...", options: ["Écrire du code", "Décrire clairement le résultat voulu en langage naturel", "Installer un logiciel tiers"], correct: 1, explain: "Cowork est conçu pour qu'une description claire en langage naturel suffise à orchestrer les connecteurs disponibles." }]
+    },
+    {
+      title: "Sécurité et confidentialité des données candidats",
+      content: "<p>Les données candidats (CV, coordonnées, évaluations) sont sensibles. Avant de connecter un outil ou d'automatiser un envoi, vérifie toujours : quelles données sont partagées, qui peut voir le résultat, et relis systématiquement un email ou un message avant qu'il ne parte automatiquement. Pour toute action irréversible (envoi, suppression, partage externe), garde une étape de validation humaine.</p>",
+      tip: "Règle simple : plus une action est difficile à annuler (envoyer un email à un candidat, supprimer une donnée), plus elle mérite une relecture avant validation.",
+      quiz: [{ q: "Avant d'automatiser l'envoi d'un email à des candidats, la bonne pratique est de...", options: ["Laisser l'automatisation envoyer sans relecture dès le premier essai", "Garder une étape de relecture humaine tant que la confiance n'est pas établie", "Ne jamais automatiser d'emails"], correct: 1, explain: "Pour une action difficilement réversible et sensible (données candidats), une relecture humaine reste la pratique la plus sûre, au moins au début." }]
+    },
+    {
+      title: "Cowork vs Claude Code : quand utiliser quoi",
+      content: "<p><b>Claude Cowork</b> : pour des workflows métier connectés à tes outils, décrits en langage naturel, sans code — parfait pour 90% de tes besoins de recruteuse au quotidien.</p><p><b>Claude Code</b> : quand tu veux construire un vrai outil sur-mesure et durable (comme le toolkit que tu utilises là), ou automatiser quelque chose de plus complexe avec du code et des fichiers.</p><p>Les deux peuvent se combiner : un outil construit avec Claude Code peut ensuite être utilisé et maintenu via Cowork.</p>",
+      tip: "Commence toujours par Cowork pour un besoin ponctuel ; passe à Claude Code seulement si tu as besoin d'un outil réutilisable et personnalisé.",
+      quiz: [{ q: "Pour un besoin ponctuel de synthèse hebdomadaire connectée à Gmail, le plus adapté est...", options: ["Claude Cowork", "Toujours Claude Code, même pour une tâche simple", "Aucun des deux"], correct: 0, explain: "Un workflow métier connecté à un outil existant, sans besoin de construire quelque chose de durable, est le cas d'usage typique de Cowork." }]
+    }
+  ];
+
+  var CODEPRO = [
+    {
+      title: "Le mindset \"automatisation\"",
+      content: "<p>La meilleure façon de trouver de bonnes automatisations : repère les tâches que tu refais chaque semaine sans réfléchir (trier des CV, mettre à jour un tracker, relancer des candidats, préparer une fiche d'entretien). Ce sont les meilleures candidates à l'automatisation — répétitives, bien définies, à faible risque si une étape de vérification reste en place.</p>",
+      tip: "Tiens une liste des tâches répétitives de ta semaine : c'est ton futur backlog d'automatisations.",
+      quiz: [{ q: "Une bonne candidate à l'automatisation est une tâche qui est...", options: ["Rare et très spécifique à une seule situation", "Répétitive et bien définie", "Toujours critique et irréversible"], correct: 1, explain: "Les tâches répétitives et bien cadrées sont les plus faciles à automatiser de façon fiable." }]
+    },
+    {
+      title: "CLAUDE.md avancé pour un outil recruteur",
+      content: "<p>Dans un projet Claude Code, le fichier <code>CLAUDE.md</code> peut contenir : le ton attendu pour les emails candidats, les critères d'évaluation standard de ton équipe, les champs obligatoires d'un tracker, ou les règles RGPD à toujours respecter. Une fois écrit, Claude applique ces règles à chaque session sans que tu aies à les répéter.</p>",
+      tip: "Écris CLAUDE.md comme tu formerais une nouvelle recrue dans ton équipe : les règles qu'elle doit connaître avant de commencer.",
+      quiz: [{ q: "Un bon contenu pour CLAUDE.md dans un outil recruteur serait...", options: ["Le ton attendu des emails et les critères d'évaluation standard de l'équipe", "Les mots de passe de l'équipe", "Rien, ce fichier ne sert à rien pour un outil métier"], correct: 0, explain: "CLAUDE.md sert de mémo permanent pour les conventions et règles métier que Claude doit toujours respecter sur ce projet." }]
+    },
+    {
+      title: "Créer un skill sur-mesure",
+      content: "<p>Un <b>skill</b> empaquette un mode opératoire réutilisable. Exemple concret pour une recruteuse : un skill \"grille d'évaluation d'entretien\" qui applique toujours la même méthode (questions, critères, pondération) à chaque entretien, utilisable par toute l'équipe sans qu'elle ait à réexpliquer la méthode à chaque fois.</p>",
+      tip: "Un skill, c'est une procédure écrite une fois par toi, et appliquée automatiquement à chaque usage par toute l'équipe.",
+      quiz: [{ q: "Un skill \"grille d'évaluation d'entretien\" permettrait à ton équipe de...", options: ["Improviser différemment à chaque entretien", "Appliquer systématiquement la même méthode d'évaluation, sans la réexpliquer", "Remplacer les entretiens eux-mêmes"], correct: 1, explain: "Le skill standardise une méthode réutilisable, garantissant la cohérence entre les recruteurs et les entretiens." }]
+    },
+    {
+      title: "Les sous-agents pour déléguer",
+      content: "<p>Pour une tâche complexe à plusieurs volets, tu peux déléguer des sous-tâches à des agents spécialisés : un agent qui recherche le marché salarial pendant qu'un autre rédige la fiche de poste. Chacun travaille sur son périmètre sans encombrer la conversation principale, puis les résultats sont combinés.</p>",
+      tip: "Pense \"sous-agent\" comme déléguer une recherche à un stagiaire pendant que tu avances sur autre chose en parallèle.",
+      quiz: [{ q: "L'intérêt principal des sous-agents est de...", options: ["Remplacer totalement la supervision humaine", "Paralléliser des sous-tâches spécialisées sans polluer la conversation principale", "Ralentir le traitement d'une tâche"], correct: 1, explain: "Les sous-agents permettent de traiter des sous-tâches en parallèle, chacune dans son propre contexte." }]
+    },
+    {
+      title: "Hooks : automatiser des déclencheurs",
+      content: "<p>Un <b>hook</b> déclenche automatiquement une action à un moment précis. Exemple recruteur : après chaque mise à jour du tracker de candidatures, envoyer automatiquement une notification à l'équipe, ou lancer une vérification de cohérence des données.</p>",
+      tip: "Les hooks sont puissants mais doivent rester simples et prévisibles — évite les chaînes de hooks trop complexes à suivre.",
+      quiz: [{ q: "Un hook sert à...", options: ["Déclencher automatiquement une action à un moment précis d'un processus", "Stocker des données candidats de façon permanente", "Remplacer un connecteur"], correct: 0, explain: "Un hook est un déclencheur automatique attaché à un événement précis (ex : après une mise à jour de fichier)." }]
+    },
+    {
+      title: "MCP : connecter Claude à tes vrais outils",
+      content: "<p>Le <b>MCP</b> (Model Context Protocol) est ce qui permet à Claude Code de se connecter à des outils externes réels : Gmail, Google Sheets, Google Drive, Notion, GitHub. C'est la même technologie que celle utilisée côté Cowork, mais accessible de façon plus personnalisable pour construire des automatisations sur-mesure et bout-en-bout.</p>",
+      tip: "Si tu peux décrire précisément \"je veux que Claude lise X et mette à jour Y\", le MCP est probablement la brique technique derrière.",
+      quiz: [{ q: "Le MCP permet notamment à Claude Code de...", options: ["Se connecter à des outils externes comme Gmail, Sheets ou Notion", "Fonctionner uniquement hors ligne", "Remplacer le besoin de permissions"], correct: 0, explain: "Le MCP standardise la connexion entre Claude et des outils/données externes, permettant des automatisations bout-en-bout." }]
+    },
+    {
+      title: "Construire et déployer un outil, méthode pas à pas",
+      content: "<p>La méthode qui a servi à construire les deux outils que tu utilises là : 1) décrire précisément le besoin et l'audience, 2) laisser Claude Code proposer une première version, 3) tester et donner des retours précis, 4) créer une Pull Request pour relire le résultat avant de l'intégrer (\"merger\"), 5) déployer (ex : GitHub Pages) pour avoir un lien utilisable partout.</p>",
+      tip: "Tu as déjà vécu ce cycle complet avec ce toolkit — tu peux le reproduire pour ta prochaine idée d'outil.",
+      quiz: [{ q: "Dans le cycle de construction d'un outil avec Claude Code, la Pull Request sert à...", options: ["Supprimer le projet", "Relire les changements avant de les intégrer définitivement", "Remplacer les tests"], correct: 1, explain: "La PR est l'étape de relecture avant que les changements ne deviennent définitifs dans le projet." }]
+    },
+    {
+      title: "Superviser et faire confiance progressivement",
+      content: "<p>Commence en mode \"je valide chaque action\", puis augmente l'autonomie au fur et à mesure que tu fais confiance au résultat sur un type de tâche donné. Garde systématiquement un œil humain sur les actions difficilement réversibles : envoi d'email à un candidat, suppression de données, publication publique.</p>",
+      tip: "L'autonomie se gagne tâche par tâche, pas d'un coup pour tout.",
+      quiz: [{ q: "La bonne approche pour augmenter l'autonomie de Claude sur tes automatisations est de...", options: ["Tout automatiser en mode autonome dès le premier jour", "Augmenter progressivement la confiance, tâche par tâche, en gardant une vigilance sur l'irréversible", "Ne jamais lui faire confiance"], correct: 1, explain: "Une montée en autonomie progressive, avec vigilance maintenue sur les actions irréversibles, est la pratique la plus sûre." }]
+    }
+  ];
+
+  var LIBRARY = [
+    { cat: "Sourcing", title: "Trouver les bons mots-clés et intitulés", prompt: "Tu es un expert en sourcing tech. Génère 15 intitulés de poste et synonymes utilisés sur le marché pour rechercher des profils \"[intitulé du poste]\", en distinguant les variantes utilisées en France et à l'international. Ajoute aussi 5 technologies ou mots-clés associés souvent mentionnés dans les CV de ce type de profil.", note: "Utile pour élargir tes recherches au-delà de l'intitulé exact du poste." },
+    { cat: "Sourcing", title: "Analyser un marché de talents", prompt: "Fais une synthèse du marché des talents pour le poste \"[intitulé]\" dans la zone \"[ville/pays]\" : rareté estimée du profil, fourchette de rémunération généralement pratiquée, et 3 arguments pour rendre l'offre attractive face à la concurrence. Précise les limites de ton estimation et où je devrais vérifier ces données.", note: "Demande toujours la vérification des chiffres sensibles (salaires) auprès d'une source à jour." },
+    { cat: "Rédaction", title: "Rédiger une fiche de poste inclusive", prompt: "Rédige une fiche de poste pour \"[intitulé du poste]\". Contexte entreprise : [description courte]. Inclue : résumé du poste, missions principales, profil recherché, ce que l'entreprise offre. Ton professionnel et inclusif : évite les superlatifs du type \"rockstar\"/\"ninja\" qui réduisent les candidatures de certains groupes, et relis la formulation pour qu'elle n'implique pas un genre ou un âge implicite.", note: "Les recherches montrent que la formulation d'une offre influence qui postule — ce prompt intègre ce point dès le départ." },
+    { cat: "Rédaction", title: "Message d'approche LinkedIn personnalisé", prompt: "Rédige un message d'approche court (max 80 mots) pour contacter un profil \"[intitulé]\" sur LinkedIn, en mentionnant un point précis de son parcours : \"[élément du profil]\". Le message doit donner envie d'échanger sans paraître copié-collé, ton direct et respectueux de son temps.", note: "Remplace toujours [élément du profil] par un vrai détail — jamais un message générique." },
+    { cat: "Screening CV", title: "Évaluer un CV face à une fiche de poste", prompt: "Voici une fiche de poste et un CV. Évalue l'adéquation du candidat critère par critère (compétences techniques, expérience, soft skills visibles), donne un score sur 10 pour chacun avec une justification courte, puis une recommandation globale (à avancer / à creuser / à écarter) en une phrase.\n\n<fiche_de_poste>\n[coller la fiche de poste]\n</fiche_de_poste>\n\n<cv>\n[coller le CV]\n</cv>", note: "Les balises <fiche_de_poste> et <cv> évitent toute confusion entre les deux documents collés." },
+    { cat: "Screening CV", title: "Détecter les red flags et green flags d'un CV", prompt: "Analyse ce CV pour le poste \"[intitulé]\" et liste séparément : 3 signaux positifs concrets (green flags) et 3 points à creuser en entretien (pas forcément des red flags, juste des zones d'ombre à clarifier). Reste factuel, sans jugement sur des éléments hors sujet (trous de CV, reconversions...).\n\n<cv>\n[coller le CV]\n</cv>", note: "Pense à toujours vérifier en entretien plutôt que d'écarter uniquement sur la base de l'analyse du CV." },
+    { cat: "Entretien", title: "Questions d'entretien comportementales (méthode STAR)", prompt: "Génère 8 questions d'entretien comportementales (méthode STAR : Situation, Tâche, Action, Résultat) pour évaluer la compétence \"[compétence, ex : gestion de priorités]\" chez un profil \"[intitulé du poste]\". Pas de questions techniques de code — uniquement des questions que je peux poser sans background engineering.", note: "Idéal pour préparer un entretien sans avoir besoin de valider toi-même une réponse technique." },
+    { cat: "Entretien", title: "Préparer un entretien en 5 minutes", prompt: "Voici le CV d'un candidat et la fiche de poste. Prépare-moi une fiche de prise d'entretien : 1) un résumé du parcours en 3 lignes, 2) 5 points à clarifier en priorité, 3) 3 questions ciblées à poser, 4) les critères de la fiche de poste que ce profil ne couvre pas encore.\n\n<fiche_de_poste>\n[coller la fiche de poste]\n</fiche_de_poste>\n\n<cv>\n[coller le CV]\n</cv>", note: "À utiliser juste avant chaque entretien pour arriver préparée sans y passer 30 minutes." },
+    { cat: "Entretien", title: "Grille d'évaluation post-entretien", prompt: "À partir de mes notes brutes d'entretien ci-dessous, structure une évaluation claire : note par critère (sur 5), points forts, points de vigilance, et une recommandation finale argumentée en 3 lignes maximum, à partager avec le reste de l'équipe de recrutement.\n\n<notes>\n[coller tes notes brutes]\n</notes>", note: "Transforme des notes désordonnées en évaluation partageable et comparable entre candidats." },
+    { cat: "Communication", title: "Email de refus bienveillant", prompt: "Rédige un email de refus pour un candidat arrivé en entretien final, en mentionnant un point fort précis de son profil : \"[point fort]\". Raison du refus (à ne pas détailler brutalement, reste général et respectueux) : \"[raison]\". Ton chaleureux mais professionnel, longueur courte.", note: "Un refus personnalisé et respectueux protège ta marque employeur, même sur un candidat non retenu." },
+    { cat: "Communication", title: "Relance candidat sans réponse", prompt: "Rédige un message court de relance pour un candidat \"[nom/profil]\" qui n'a pas répondu depuis [durée] à propos de \"[sujet : entretien, offre, etc.]\". Ton détendu, sans pression, en laissant une porte de sortie simple s'il n'est plus intéressé.", note: "Toujours laisser une sortie simple : ça améliore le taux de réponse et l'image de l'entreprise." },
+    { cat: "Communication", title: "Annonce d'offre à un candidat", prompt: "Rédige un email annonçant une offre d'embauche à \"[nom]\" pour le poste \"[intitulé]\". Ton enthousiaste et personnalisé, en rappelant un élément marquant de son parcours d'entretien : \"[élément]\". Inclue les prochaines étapes : \"[étapes, ex : envoi de la promesse d'embauche sous 48h]\".", note: "Un bon email d'offre renforce la décision du candidat d'accepter." },
+    { cat: "Reporting", title: "Synthèse de pipeline pour ton manager", prompt: "À partir de ces données de pipeline de recrutement, génère une synthèse pour mon manager : nombre de candidatures par étape, taux de conversion entre étapes, temps moyen passé à chaque étape, et 2 recommandations concrètes d'amélioration.\n\n<donnees>\n[coller les données, ex : export de ton tracker]\n</donnees>", note: "Fonctionne très bien en copiant-collant directement un export de Google Sheets." },
+    { cat: "Reporting", title: "Bilan mensuel de recrutement", prompt: "Rédige un bilan mensuel de recrutement à partir de ces données : postes ouverts, postes pourvus, délai moyen de recrutement, sources de candidatures les plus efficaces. Structure en 4 sections courtes avec un résumé exécutif de 3 lignes en introduction.\n\n<donnees>\n[coller les données du mois]\n</donnees>", note: "Garde le résumé exécutif en haut : c'est souvent la seule partie lue par un manager pressé." },
+    { cat: "Diversité & biais", title: "Vérifier l'inclusivité d'une fiche de poste", prompt: "Relis cette fiche de poste et identifie les formulations qui pourraient décourager certains groupes de candidater (genre, âge, origine, situation de handicap). Pour chaque formulation identifiée, propose une reformulation plus neutre et explique brièvement pourquoi.\n\n<fiche_de_poste>\n[coller la fiche de poste]\n</fiche_de_poste>", note: "À utiliser systématiquement avant de publier une offre, en complément — pas en remplacement — d'une relecture humaine." },
+    { cat: "Diversité & biais", title: "Check de biais dans une grille d'évaluation", prompt: "Voici une grille de critères d'évaluation de candidats pour le poste \"[intitulé]\". Identifie les critères qui pourraient introduire un biais non pertinent pour le poste (ex : critères trop liés à un parcours scolaire précis plutôt qu'aux compétences réelles) et propose des critères alternatifs plus objectifs.\n\n<grille>\n[coller la grille]\n</grille>", note: "Un bon réflexe pour objectiver tes grilles d'évaluation avant de les généraliser à toute l'équipe." }
+  ];
+
+  var RECIPES = [
+    {
+      title: "Tracker de candidatures automatique",
+      goal: "Garder un suivi à jour de toutes les candidatures sans mise à jour manuelle fastidieuse.",
+      level: "nocode", levelLabel: "Sans code (Cowork)",
+      tools: ["Gmail", "Google Sheets"],
+      steps: [
+        "Connecte Gmail et Google Sheets à ton espace Cowork.",
+        "Crée (ou désigne) un Google Sheet avec les colonnes : Nom, Poste, Date candidature, Étape, Source.",
+        "Donne à Claude le prompt de départ ci-dessous, en précisant le lien vers ton Sheet.",
+        "Vérifie les premières lignes ajoutées avant de laisser tourner l'automatisation sans supervision."
+      ],
+      prompt: "Surveille ma boîte Gmail pour les emails contenant une candidature (objet ou pièce jointe type CV) pour le poste \"[intitulé]\". Pour chaque nouvelle candidature trouvée, ajoute une ligne dans ce Google Sheet [lien du sheet] avec : Nom du candidat, Poste, Date de réception, Étape = \"À trier\", Source = l'adresse ou le nom du site d'origine si identifiable. Ne supprime jamais de ligne existante."
+    },
+    {
+      title: "Résumé hebdomadaire des candidatures reçues",
+      goal: "Démarrer chaque semaine avec une vue claire de ce qui est arrivé, sans éplucher ta boîte mail.",
+      level: "nocode", levelLabel: "Sans code (Cowork)",
+      tools: ["Gmail"],
+      steps: [
+        "Connecte Gmail à ton espace Cowork.",
+        "Demande un résumé ponctuel pour tester le résultat.",
+        "Si le résultat te convient, demande à Claude de répéter cette synthèse chaque lundi matin."
+      ],
+      prompt: "Fais une synthèse des emails de candidature reçus dans ma boîte Gmail au cours des 7 derniers jours, pour le(s) poste(s) \"[intitulé(s)]\". Structure la réponse par poste : nombre de candidatures, 2-3 profils qui se démarquent avec une phrase d'explication, et le nombre de candidatures encore à traiter."
+    },
+    {
+      title: "Base de connaissance recrutement centralisée",
+      goal: "Arrêter de perdre les process, grilles d'évaluation et templates dans des fichiers épars.",
+      level: "nocode", levelLabel: "Sans code (Cowork)",
+      tools: ["Notion"],
+      steps: [
+        "Connecte Notion à ton espace Cowork.",
+        "Centralise dans Notion tes templates existants (grilles d'entretien, emails types, process d'onboarding candidat).",
+        "Demande à Claude de t'aider à structurer cette base une fois que le contenu brut est rassemblé."
+      ],
+      prompt: "Voici mes notes et templates de recrutement actuellement éparpillés : [coller ou décrire le contenu]. Aide-moi à les organiser dans une base Notion claire, avec une page par catégorie (grilles d'entretien, emails types, process), et un sommaire en page d'accueil."
+    },
+    {
+      title: "Pipeline de screening de CV semi-automatique",
+      goal: "Trier rapidement un gros volume de candidatures en gardant un contrôle humain sur la décision finale.",
+      level: "nocode", levelLabel: "Sans code (Cowork)",
+      tools: ["Gmail", "Google Sheets"],
+      steps: [
+        "Prépare ta fiche de poste avec des critères clairs et pondérés.",
+        "Demande à Claude d'évaluer chaque CV reçu par rapport à cette fiche (reprends le prompt \"Évaluer un CV\" de la bibliothèque).",
+        "Centralise les scores dans ton tracker Google Sheets pour prioriser qui contacter en premier.",
+        "Garde toujours une relecture humaine avant d'écarter définitivement un candidat."
+      ],
+      prompt: "Pour chaque nouveau CV reçu par email pour le poste \"[intitulé]\", évalue l'adéquation par rapport à cette fiche de poste : <fiche_de_poste>[coller]</fiche_de_poste>. Donne un score global sur 10 avec une justification en une phrase, et ajoute le résultat dans la colonne \"Score\" de mon tracker [lien du sheet]. Ne prends aucune décision de refus automatique — le score sert uniquement à prioriser ma relecture."
+    },
+    {
+      title: "Construire ton propre tracker sur-mesure",
+      goal: "Aller au-delà d'un Google Sheet quand tes besoins deviennent spécifiques (vue dédiée, règles propres à ton équipe).",
+      level: "code", levelLabel: "Avec Claude Code",
+      tools: ["Claude Code", "GitHub"],
+      steps: [
+        "Décris précisément à Claude Code le besoin : quelles infos suivre, quelles vues, pour qui.",
+        "Laisse Claude Code te proposer une première version d'un outil simple (comme ce toolkit).",
+        "Teste-le, donne des retours précis, itère.",
+        "Déploie-le (GitHub Pages) pour y accéder depuis n'importe quel appareil."
+      ],
+      prompt: "Je veux un outil simple pour suivre mes candidatures : une page avec un tableau (Nom, Poste, Étape, Date, Note), un filtre par étape, et un export CSV. Pas besoin de base de données, juste une page que j'ouvre dans mon navigateur avec mes données sauvegardées localement. Construis-moi ça."
+    },
+    {
+      title: "Fiche d'entretien générée automatiquement avant chaque RDV",
+      goal: "Arriver préparée à chaque entretien sans y passer du temps manuel.",
+      level: "nocode", levelLabel: "Sans code (Cowork)",
+      tools: ["Gmail", "Google Sheets"],
+      steps: [
+        "Connecte Gmail et ton tracker à Cowork.",
+        "Demande une fiche de prise d'entretien pour un candidat précis (reprends le prompt de la bibliothèque).",
+        "Une fois satisfaite du format, demande à Claude de la générer automatiquement la veille de chaque entretien planifié."
+      ],
+      prompt: "Chaque jour, vérifie si j'ai un entretien candidat prévu le lendemain d'après mon tracker [lien du sheet]. Si oui, prépare une fiche de prise d'entretien pour ce candidat à partir de son CV et de la fiche de poste associée, et envoie-la moi par email la veille au soir."
+    }
+  ];
+
+  var GLOSSARY = [
+    ["Prompt engineering", "La pratique de formuler ses demandes à une IA de façon à obtenir des résultats fiables et exploitables."],
+    ["System prompt", "Instruction de fond, définie en amont, qui cadre le comportement général de l'IA avant même ta première demande."],
+    ["Few-shot / Zero-shot", "Few-shot : donner des exemples du résultat attendu dans le prompt. Zero-shot : ne donner aucun exemple, juste la consigne."],
+    ["Chain of thought (raisonnement guidé)", "Demander à l'IA de décomposer son raisonnement étape par étape avant de conclure, pour un résultat plus fiable et vérifiable."],
+    ["Température", "Paramètre technique qui règle la créativité/variabilité des réponses d'un modèle — une température basse donne des réponses plus prévisibles."],
+    ["Fenêtre de contexte", "Quantité de texte (conversation, documents) qu'un modèle peut prendre en compte en même temps pour répondre."],
+    ["RAG (Retrieval-Augmented Generation)", "Technique qui permet à une IA d'aller chercher des informations dans une base de documents externe avant de répondre, plutôt que de se fier uniquement à sa mémoire interne."],
+    ["Hallucination", "Quand une IA génère une information fausse ou inventée avec assurance. Raison pour laquelle on vérifie toujours les faits sensibles."],
+    ["Grounding", "Le fait d'ancrer une réponse d'IA dans des sources vérifiables (documents, données réelles) plutôt que dans sa seule mémoire interne."],
+    ["Connecteur", "Un pont technique qui relie Claude à un outil externe (Gmail, Sheets, Notion...) pour qu'il puisse le lire ou agir dessus, avec ton autorisation."],
+    ["Claude Cowork", "L'espace de travail collaboratif de Claude pensé pour les équipes métier, orienté automatisation sans code via des connecteurs et des rôles/plugins."],
+    ["Plugin", "Un module installable qui ajoute des capacités ou des réglages pré-configurés à ton espace Cowork, souvent lié à un métier précis."],
+    ["Artifact", "Un contenu généré par Claude (page web, document, visuel) affiché à part de la conversation, que tu peux consulter, modifier ou partager."],
+    ["Projet (Claude Projects)", "Un espace qui regroupe une conversation autour d'un objectif précis, avec son propre contexte et ses propres documents de référence."],
+    ["Mémoire", "La capacité de Claude à se souvenir d'informations entre plusieurs conversations, pour éviter de tout réexpliquer à chaque fois."],
+    ["Orchestration", "Le fait pour Claude de coordonner plusieurs actions ou outils (connecteurs, sous-agents) pour accomplir une tâche complexe en une seule demande."],
+    ["MCP (Model Context Protocol)", "Le standard technique qui permet de connecter Claude à des outils et données externes, utilisé aussi bien dans Cowork que dans Claude Code."],
+    ["Skill", "Un paquet d'instructions réutilisables pour standardiser une tâche récurrente (ex : une grille d'évaluation toujours appliquée de la même façon)."],
+    ["Sous-agent", "Un assistant IA spécialisé délégué sur une sous-tâche précise, pour paralléliser le travail sans encombrer la conversation principale."],
+    ["Hook", "Une commande déclenchée automatiquement à un moment précis d'un processus (ex : après chaque mise à jour d'un fichier)."],
+    ["Garde-fou (guardrail)", "Une règle ou limite mise en place pour empêcher une IA d'effectuer une action non souhaitée ou risquée sans validation humaine."],
+    ["Évaluation (eval)", "Un test structuré qui vérifie si les réponses d'une IA sur un ensemble de cas correspondent à ce qui est attendu, avant de faire confiance à une automatisation."],
+    ["Itération", "Le fait d'affiner progressivement un résultat par des retours successifs, plutôt que d'attendre la perfection dès la première tentative."],
+    ["Vibe coding", "Le fait de construire avec une IA en se fiant au ressenti plutôt qu'à une vérification systématique — utile pour prototyper vite, risqué sans relecture sur du production."]
+  ];
+
+  var LIBRARY_CATEGORIES = ["Toutes", "Sourcing", "Rédaction", "Screening CV", "Entretien", "Communication", "Reporting", "Diversité & biais"];
+
+  // ================= STORAGE =================
+  var STORE_KEY = "maitriser-claude-progress-v1";
+  var THEME_KEY = "learn-claude-code-theme-v1"; // shared with the beginner tool on purpose
+
+  function loadProgress(){
+    try{ var raw = localStorage.getItem(STORE_KEY); return raw ? JSON.parse(raw) : {}; }catch(e){ return {}; }
+  }
+  function saveProgress(state){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
+  var progress = loadProgress();
+
+  // ================= THEME =================
+  function applyTheme(t){
+    if(t === "light" || t === "dark"){ document.documentElement.setAttribute("data-theme", t); }
+    else { document.documentElement.removeAttribute("data-theme"); }
+  }
+  (function initTheme(){
+    var saved = null;
+    try{ saved = localStorage.getItem(THEME_KEY); }catch(e){}
+    applyTheme(saved);
+  })();
+  document.getElementById("themeBtn").addEventListener("click", function(){
+    var current = document.documentElement.getAttribute("data-theme");
+    var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var next;
+    if(!current){ next = prefersDark ? "light" : "dark"; }
+    else if(current === "dark"){ next = "light"; }
+    else { next = "dark"; }
+    applyTheme(next);
+    try{ localStorage.setItem(THEME_KEY, next); }catch(e){}
+  });
+
+  // ================= TABS =================
+  var tabButtons = document.querySelectorAll("#tabs button");
+  var panels = document.querySelectorAll(".panel");
+  tabButtons.forEach(function(btn){
+    btn.addEventListener("click", function(){
+      tabButtons.forEach(function(b){ b.classList.remove("active"); });
+      panels.forEach(function(p){ p.classList.remove("active"); });
+      btn.classList.add("active");
+      document.getElementById("panel-" + btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  // ================= MODULE TRACKS =================
+  function moduleKey(track, idx){ return track + "-" + idx; }
+
+  function updateProgressBar(track, total){
+    var done = 0;
+    for(var i=0;i<total;i++){ if(progress[moduleKey(track,i)]) done++; }
+    document.getElementById("fill-" + track).style.width = (total ? (done/total*100) : 0) + "%";
+    document.getElementById("label-" + track).textContent = done + " / " + total;
+  }
+
+  function renderQuiz(container, quiz, keyPrefix){
+    if(!quiz || !quiz.length) return;
+    var wrap = document.createElement("div");
+    wrap.className = "quiz";
+    quiz.forEach(function(item, qi){
+      var qDiv = document.createElement("div");
+      qDiv.className = "q";
+      var qText = document.createElement("div");
+      qText.className = "qtext";
+      qText.textContent = "Mini-quiz : " + item.q;
+      qDiv.appendChild(qText);
+
+      var explain = document.createElement("div");
+      explain.className = "explain";
+      explain.textContent = item.explain;
+
+      item.options.forEach(function(opt, oi){
+        var label = document.createElement("label");
+        var input = document.createElement("input");
+        input.type = "radio";
+        input.name = keyPrefix + "-q" + qi;
+        input.addEventListener("change", function(){
+          var labels = qDiv.querySelectorAll("label");
+          labels.forEach(function(l, li){
+            l.classList.remove("correct","incorrect");
+            if(li === item.correct) l.classList.add("correct");
+          });
+          if(oi !== item.correct) label.classList.add("incorrect");
+          explain.classList.add("show");
+        });
+        var span = document.createElement("span");
+        span.textContent = opt;
+        label.appendChild(input);
+        label.appendChild(span);
+        qDiv.appendChild(label);
+      });
+
+      qDiv.appendChild(explain);
+      wrap.appendChild(qDiv);
+    });
+    container.appendChild(wrap);
+  }
+
+  function renderTrack(track, data){
+    var listEl = document.getElementById("list-" + track);
+    data.forEach(function(mod, idx){
+      var card = document.createElement("div");
+      card.className = "module";
+
+      var head = document.createElement("div");
+      head.className = "module-head";
+
+      var check = document.createElement("input");
+      check.type = "checkbox";
+      check.checked = !!progress[moduleKey(track, idx)];
+      check.title = "Marquer comme terminé";
+      check.addEventListener("click", function(e){ e.stopPropagation(); });
+      check.addEventListener("change", function(){
+        progress[moduleKey(track, idx)] = check.checked;
+        saveProgress(progress);
+        updateProgressBar(track, data.length);
+      });
+
+      var num = document.createElement("span");
+      num.className = "num";
+      num.textContent = (idx+1).toString().padStart(2,"0");
+
+      var h3 = document.createElement("h3");
+      h3.textContent = mod.title;
+
+      var chev = document.createElement("span");
+      chev.className = "chev";
+      chev.textContent = "▸";
+
+      head.appendChild(check);
+      head.appendChild(num);
+      head.appendChild(h3);
+      head.appendChild(chev);
+
+      var body = document.createElement("div");
+      body.className = "module-body";
+      body.innerHTML = mod.content;
+
+      if(mod.examples){
+        mod.examples.forEach(function(ex){
+          var exDiv = document.createElement("div");
+          exDiv.className = "example " + ex.type;
+          var b = document.createElement("b");
+          b.textContent = ex.label;
+          exDiv.appendChild(b);
+          exDiv.appendChild(document.createTextNode(ex.text));
+          body.appendChild(exDiv);
+        });
+      }
+
+      if(mod.tip){
+        var tip = document.createElement("div");
+        tip.className = "tip";
+        tip.innerHTML = "<b>Astuce —</b> " + mod.tip;
+        body.appendChild(tip);
+      }
+
+      renderQuiz(body, mod.quiz, moduleKey(track, idx));
+
+      head.addEventListener("click", function(){
+        card.classList.toggle("open");
+      });
+
+      card.appendChild(head);
+      card.appendChild(body);
+      listEl.appendChild(card);
+    });
+    updateProgressBar(track, data.length);
+  }
+
+  renderTrack("prompting", PROMPTING);
+  renderTrack("cowork", COWORK);
+  renderTrack("codepro", CODEPRO);
+
+  // ================= COPY HELPER =================
+  function makeCopyButton(text){
+    var btn = document.createElement("button");
+    btn.className = "copy-btn";
+    btn.type = "button";
+    btn.textContent = "Copier";
+    btn.addEventListener("click", function(){
+      function done(ok){
+        btn.textContent = ok ? "Copié !" : "Erreur";
+        btn.classList.toggle("copied", ok);
+        setTimeout(function(){ btn.textContent = "Copier"; btn.classList.remove("copied"); }, 1600);
+      }
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(function(){ done(true); }).catch(function(){ done(false); });
+      } else {
+        try{
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          done(true);
+        }catch(e){ done(false); }
+      }
+    });
+    return btn;
+  }
+
+  // ================= LIBRARY =================
+  var libraryListEl = document.getElementById("libraryList");
+  var currentCategory = "Toutes";
+  var currentSearch = "";
+
+  function renderLibraryChips(){
+    var chipsEl = document.getElementById("libraryChips");
+    LIBRARY_CATEGORIES.forEach(function(cat){
+      var chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip" + (cat === currentCategory ? " active" : "");
+      chip.textContent = cat;
+      chip.addEventListener("click", function(){
+        currentCategory = cat;
+        chipsEl.querySelectorAll(".chip").forEach(function(c){ c.classList.remove("active"); });
+        chip.classList.add("active");
+        renderLibrary();
+      });
+      chipsEl.appendChild(chip);
+    });
+  }
+
+  function renderLibrary(){
+    libraryListEl.innerHTML = "";
+    var q = currentSearch.toLowerCase();
+    LIBRARY.forEach(function(item){
+      if(currentCategory !== "Toutes" && item.cat !== currentCategory) return;
+      if(q && item.title.toLowerCase().indexOf(q) === -1 && item.prompt.toLowerCase().indexOf(q) === -1 && item.cat.toLowerCase().indexOf(q) === -1) return;
+
+      var card = document.createElement("div");
+      card.className = "prompt-card";
+
+      var tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = item.cat;
+      card.appendChild(tag);
+
+      var h3 = document.createElement("h3");
+      h3.textContent = item.title;
+      card.appendChild(h3);
+
+      var box = document.createElement("div");
+      box.className = "prompt-box";
+      box.textContent = item.prompt;
+      box.appendChild(makeCopyButton(item.prompt));
+      card.appendChild(box);
+
+      if(item.note){
+        var note = document.createElement("div");
+        note.className = "note";
+        note.textContent = item.note;
+        card.appendChild(note);
+      }
+
+      libraryListEl.appendChild(card);
+    });
+    if(!libraryListEl.children.length){
+      var empty = document.createElement("p");
+      empty.style.color = "var(--text-muted)";
+      empty.textContent = "Aucun prompt ne correspond à ta recherche.";
+      libraryListEl.appendChild(empty);
+    }
+  }
+
+  renderLibraryChips();
+  renderLibrary();
+  document.getElementById("librarySearch").addEventListener("input", function(e){
+    currentSearch = e.target.value;
+    renderLibrary();
+  });
+
+  // ================= RECIPES =================
+  var recipeListEl = document.getElementById("recipeList");
+  RECIPES.forEach(function(r){
+    var card = document.createElement("div");
+    card.className = "recipe-card";
+
+    var h3 = document.createElement("h3");
+    h3.textContent = r.title;
+    card.appendChild(h3);
+
+    var goal = document.createElement("div");
+    goal.className = "goal";
+    goal.textContent = r.goal;
+    card.appendChild(goal);
+
+    var tagRow = document.createElement("div");
+    tagRow.className = "tag-row";
+    var badge = document.createElement("span");
+    badge.className = "badge " + r.level;
+    badge.textContent = r.levelLabel;
+    tagRow.appendChild(badge);
+    r.tools.forEach(function(t){
+      var tt = document.createElement("span");
+      tt.className = "tool-tag";
+      tt.textContent = t;
+      tagRow.appendChild(tt);
+    });
+    card.appendChild(tagRow);
+
+    var ol = document.createElement("ol");
+    r.steps.forEach(function(s){
+      var li = document.createElement("li");
+      li.textContent = s;
+      ol.appendChild(li);
+    });
+    card.appendChild(ol);
+
+    var box = document.createElement("div");
+    box.className = "prompt-box";
+    box.textContent = r.prompt;
+    box.appendChild(makeCopyButton(r.prompt));
+    card.appendChild(box);
+
+    recipeListEl.appendChild(card);
+  });
+
+  // ================= GLOSSARY =================
+  var glossaryList = document.getElementById("glossaryList");
+  function renderGlossary(filter){
+    glossaryList.innerHTML = "";
+    var f = (filter || "").toLowerCase();
+    GLOSSARY.forEach(function(pair){
+      if(f && pair[0].toLowerCase().indexOf(f) === -1 && pair[1].toLowerCase().indexOf(f) === -1) return;
+      var div = document.createElement("div");
+      var dt = document.createElement("dt");
+      dt.textContent = pair[0];
+      var dd = document.createElement("dd");
+      dd.textContent = pair[1];
+      div.appendChild(dt);
+      div.appendChild(dd);
+      glossaryList.appendChild(div);
+    });
+  }
+  renderGlossary("");
+  document.getElementById("glossarySearch").addEventListener("input", function(e){
+    renderGlossary(e.target.value);
+  });
+
+})();
+</script>
+</body>
+</html>
