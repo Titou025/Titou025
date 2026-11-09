@@ -1,0 +1,19 @@
+# 🍑 La Pêche
+
+Suivi calories + macros pensé TDAH et hyperphagie. Web app installable sur iPhone. Données 100 % sur le téléphone.
+
+## Fonctions
+- Ajout en 2 taps : récents, « comme hier », ajout rapide kcal
+- Recherche par marque ou code-barres via Open Food Facts
+- Barre de progression sans rouge, message bienveillant si dépassement
+- Lissage hebdo de l'écart (max -10 %/jour, plancher, protéines fixes, jours de crise exclus)
+- Bouton « J'ai fait une crise » : déclencheurs, note, zéro jugement
+- Photo hebdo + comparateur avant/après mensuel
+- Pesée mensuelle, tendance douce (chiffres masqués par défaut)
+- Rappels via calendrier iPhone (.ics), sauvegarde/restauration JSON
+
+## Installer
+1. GitHub : Settings → Pages → Source « Deploy from a branch » → `main` / root
+2. Sur l'iPhone, ouvrir `https://titou025.github.io/Titou025/la-peche/` dans Safari
+3. Partager → « Sur l'écran d'accueil »
+4. Réglages de l'app → objectifs → « Ajouter les rappels au calendrier »
