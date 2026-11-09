@@ -221,14 +221,38 @@ function addSearch(q) {
     <input id="q" style="margin-top:8px" placeholder="Ex : skyr Siggi's, pâtes Barilla" value="${esc(q)}" autocomplete="off" enterkeyhint="search">
     <button class="full" style="margin-top:8px" onclick="offGo()">🔎 Chercher la marque sur internet</button>
     <div class="row" style="margin-top:8px"><button class="btn2" style="flex:1" onclick="manualFood()">✍️ À la main</button>${R ? '' : '<button class="btn2" style="flex:1" onclick="quickKcal()">⚡ Juste les kcal</button>'}</div>
+    <div id="ciq">${q ? ciqHTML(q) : ''}</div>
     <div id="res"></div>
     <h2>${q ? 'Dans mes aliments' : 'Récents (1 tap)'}</h2>
     <div>${rec.length ? rec.map(([key, f]) => `<div class="res" onclick="pickFood('${encodeURIComponent(key)}')"><b>${f.recipe ? '🍲 ' : ''}${esc(f.name)}</b>${f.brand ? ` <span class="tag">${esc(f.brand)}</span>` : ''}<br><small>${f.recipe && f.serving ? `${r0(f.per100.kcal * f.serving / 100)} kcal/portion` : `${r0(f.per100.kcal)} kcal/100g`} · dernière fois ${f.lastQty} g</small></div>`).join('') : '<small>Rien encore. Cherche un produit ou ajoute-le à la main, il apparaîtra ici ensuite.</small>'}</div>`);
+  if (q && !CIQ) loadCiqual().then(() => { const el = $('#ciq'); if (el && $('#q') && $('#q').value === q) el.innerHTML = ciqHTML(q); });
   const qi = $('#q');
   qi.oninput = () => { clearTimeout(window._qt); window._qt = setTimeout(() => { const v = qi.value; addSearch(v); const n = $('#q'); n.focus(); n.setSelectionRange(v.length, v.length); }, 350); };
   qi.onkeydown = e => { if (e.key === 'Enter') offGo(); };
 }
+function ciqHTML(q) {
+  if (!CIQ) return '<p class="mute">Chargement des aliments de base…</p>';
+  ciqRes = ciqSearch(q);
+  return `<h2>Aliments de base <small>(sans marque)</small></h2>` + (ciqRes.length ? ciqRes.map((x, i) => `<div class="res" onclick="pickCiq(${i})"><b>${esc(x.n)}</b><br><small>${x.kcal} kcal · P${x.p} G${x.c} L${x.f} /100g</small></div>`).join('') : '<p class="mute">Aucun aliment de base trouvé. Essaie un autre mot (ex : « oeuf », « riz cuit », « banane »).</p>');
+}
 window.pickFood = key => { key = decodeURIComponent(key); const f = foods[key]; A.food = { name: f.name, brand: f.brand, per100: f.per100, serving: f.serving, code: f.code, key: f.recipe ? key : null }; addQty(f.lastQty || f.serving || 100); };
+
+// Ciqual (ANSES) : aliments de base sans marque, chargés à la demande
+let CIQ = null, ciqLoading = null;
+const norm = t => String(t).toLowerCase().replace(/œ/g, 'oe').replace(/æ/g, 'ae').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+function loadCiqual() {
+  if (CIQ) return Promise.resolve(CIQ);
+  return ciqLoading = ciqLoading || fetch('ciqual.json').then(r => r.json()).then(a => CIQ = a.map(x => ({ n: x[0], k: norm(x[0]), kcal: x[1], p: x[2], c: x[3], f: x[4] }))).catch(() => { ciqLoading = null; return []; });
+}
+function ciqSearch(q) {
+  if (!CIQ || !q.trim()) return [];
+  const full = norm(q).split(/\s+/).filter(Boolean), w = full.map(x => x.length > 3 ? x.replace(/s$/, '') : x);
+  return CIQ.filter(x => w.every(t => x.k.includes(t)))
+    .map(x => ({ x, s: (x.k.startsWith(full[0]) ? 0 : x.k.startsWith(w[0]) ? 1000 : 2000) + full.filter(t => !x.k.includes(t)).length * 500 + x.n.length }))
+    .sort((a, b) => a.s - b.s).slice(0, 15).map(o => o.x);
+}
+let ciqRes = [];
+window.pickCiq = i => { const x = ciqRes[i]; A.food = { name: x.n, brand: 'Ciqual', per100: { kcal: x.kcal, p: x.p, f: x.f, c: x.c } }; const fk = foods[(x.n + '|ciqual').toLowerCase()]; addQty(fk ? fk.lastQty : (fk && fk.unitG) || 100); };
 
 // Open Food Facts (base collaborative ouverte, gratuite)
 function offParse(p) {
@@ -270,14 +294,15 @@ window.offGo = async () => {
 window.pickOff = i => { A.food = offResults[i]; addQty(A.food.serving || 100); };
 
 function addQty(qty) {
-  const f = A.food;
+  const f = A.food, fkey = f.key || (f.name + '|' + (f.brand || '')).toLowerCase(), unitG = (foods[fkey] || {}).unitG;
   const chips = [50, 100, 150, 200, 250].concat(f.serving ? [] : []);
   openSheet(`<div class="row between"><h2 style="margin:0">${esc(f.name)}</h2><button class="btn3" onclick="addSearch('')">‹ Retour</button></div>
     ${f.brand ? `<span class="tag">${esc(f.brand)}</span>` : ''}
     ${f.key ? `<button class="btn3" onclick="recipeEdit('${encodeURIComponent(f.key)}')">✏️ Modifier la recette</button>` : ''}
     <p class="mute">Pour 100 g : ${r0(f.per100.kcal)} kcal · P${r1(f.per100.p)} G${r1(f.per100.c)} L${r1(f.per100.f)}</p>
     <label>Quantité (g ou ml)</label><input id="qty" type="number" inputmode="decimal" value="${qty}">
-    <div class="chips">${f.serving ? `<button class="chip" onclick="setQ(${f.serving})">1 portion (${f.serving} g)</button>` : ''}${chips.map(c => `<button class="chip" onclick="setQ(${c})">${c} g</button>`).join('')}</div>
+    <div class="chips">${unitG ? [1, 2, 3].map(n => `<button class="chip" onclick="setQ(${n * unitG})">${n} pièce${n > 1 ? 's' : ''} (${r0(n * unitG)} g)</button>`).join('') : ''}${f.serving ? `<button class="chip" onclick="setQ(${f.serving})">1 portion (${f.serving} g)</button>` : ''}${chips.map(c => `<button class="chip" onclick="setQ(${c})">${c} g</button>`).join('')}</div>
+    <button class="btn3" onclick="setUnit('${encodeURIComponent(fkey)}')">${unitG ? `✏️ 1 pièce = ${unitG} g` : '🥚 Compter en pièces (ex : 1 œuf)'}</button>
     <div class="card" id="calc"></div>
     <div class="chips ${A.recipe ? 'hidden' : ''}">${Object.entries(MEALS).map(([k, v]) => `<button class="chip ${A.meal === k ? 'on' : ''}" onclick="A.meal='${k}';this.parentNode.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));this.classList.add('on')">${v}</button>`).join('')}</div>
     <button class="full" style="font-size:18px;padding:16px" onclick="confirmAdd()">✅ ${A.recipe ? 'Ajouter au plat' : 'Ajouter'}</button>`);
@@ -285,6 +310,13 @@ function addQty(qty) {
   $('#qty').oninput = upd; upd();
   window.setQ = v => { $('#qty').value = v; upd(); };
 }
+window.setUnit = k => {
+  k = decodeURIComponent(k); const cur = (foods[k] || {}).unitG || '';
+  const v = parseFloat(String(prompt('Combien pèse 1 pièce, en grammes ?\n(regarde la boîte, ou pèse-en une une fois)', cur) || '').replace(',', '.'));
+  if (!v || v <= 0) return;
+  const f = A.food; foods[k] = { name: f.name, brand: f.brand || '', per100: f.per100, lastQty: v, uses: 0, last: Date.now(), ...(foods[k] || {}), unitG: r1(v) };
+  save(); addQty(v);
+};
 window.confirmAdd = () => {
   const f = A.food, q = +$('#qty').value || 0; if (!q) { toast('Mets une quantité'); return; }
   const x = q / 100;
@@ -627,7 +659,7 @@ function renderSettings() {
     <button class="btn2 full" onclick="backup()">⬇️ Exporter mes données</button>
     <label class="btn btn2 full" style="text-align:center;margin-top:8px">⬆️ Importer une sauvegarde<input type="file" id="imp" accept="application/json,.json" hidden></label></div>
   <div class="card"><b>📲 Installer sur l'iPhone</b><p class="mute">Dans Safari : bouton Partager ⬆️ → « Sur l'écran d'accueil ». L'app s'ouvre ensuite en plein écran comme une vraie app.</p></div>
-  <p class="mute" style="text-align:center">Données nutritionnelles des marques : <a href="https://fr.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a> (base collaborative, vérifie l'étiquette en cas de doute).</p>`;
+  <p class="mute" style="text-align:center">Marques : <a href="https://fr.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a> (collaboratif, vérifie l'étiquette en cas de doute). Aliments de base : <a href="https://ciqual.anses.fr/" target="_blank" rel="noopener">Table Ciqual, Anses</a> (Licence Ouverte).</p>`;
   ['sp', 'sc', 'sf'].forEach(id => $('#' + id).oninput = () => { $('#mk').textContent = `Tes macros font ${r0(+$('#sp').value * 4 + +$('#sc').value * 4 + +$('#sf').value * 9)} kcal (P×4 + G×4 + L×9).`; });
   $('#imp').onchange = restore;
 }

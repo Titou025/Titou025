@@ -4,6 +4,7 @@ Suivi calories + macros pensé TDAH et hyperphagie. Web app installable sur iPho
 
 ## Fonctions
 - Ajout en 2 taps : récents, « comme hier », ajout rapide kcal
+- Aliments de base sans marque (œuf, riz, fruits...) via la table Ciqual de l'Anses, avec comptage en pièces
 - Scanner de code-barres (caméra ou photo) + recherche par marque via Open Food Facts
 - Plats maison : recette enregistrée une fois, puis 1 tap par portion
 - Barre de progression sans rouge, message bienveillant si dépassement
