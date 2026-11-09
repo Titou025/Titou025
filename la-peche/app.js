@@ -12,7 +12,7 @@ const DEF = {
   compensate: true, maxPct: 10, minKcal: 1400, skipBinge: true,
   meals: { pdj: '08:30', dej: '12:30', gouter: '16:30', diner: '19:30' },
   photoDay: 0, // 0 = dimanche
-  moodTime: '21:00',
+  moodTime: '21:00', stepsGoal: 10000, yogaGoal: 3, yogaTime: '18:30', yogaDays: 'MO,WE,FR',
   showWeight: false, set: false
 };
 let cfg = Object.assign({}, DEF, S.get('cfg', {}));
@@ -23,8 +23,10 @@ let binges = S.get('binges', {});     // { date: {triggers:[], note, ts} }
 let weights = S.get('weights', []);   // [{date,kg}]
 let meta = S.get('meta', {});         // {lastCompare, rewards:{monday:text}}
 let sport = S.get('sport', {});       // { date: ['salle'|'danse'] }
+let steps = S.get('steps', {});       // { date: nb de pas }
+let yoga = S.get('yoga', {});         // { date: minutes }
 let journal = S.get('journal', {});   // { date: [{ts,mood,emos,note,pride,grat}] }
-const save = () => { S.set('cfg', cfg); S.set('entries', entries); S.set('foods', foods); S.set('binges', binges); S.set('weights', weights); S.set('meta', meta); S.set('sport', sport); S.set('journal', journal); };
+const save = () => { S.set('cfg', cfg); S.set('entries', entries); S.set('foods', foods); S.set('binges', binges); S.set('weights', weights); S.set('meta', meta); S.set('sport', sport); S.set('journal', journal); S.set('steps', steps); S.set('yoga', yoga); };
 
 // ---------- photos (IndexedDB) ----------
 const DB = {
@@ -558,7 +560,7 @@ window.openRecap = m => {
     <div class="card"><b>🌟 Tes fiertés</b>${prides.length ? li(prides, 'pride') : '<p class="mute">Aucune notée cette semaine. Je t\'en donne une : tu as ouvert ton récap. Ça compte.</p>'}</div>
     <div class="card"><b>🙏 Tes gratitudes</b>${grats.length ? li(grats, 'grat') : '<p class="mute">Rien de noté. La semaine prochaine, essaie juste une.</p>'}</div>
     ${hard.length ? `<div class="card"><b>💜 Les moments plus durs</b>${hard.map(e => `<div class="item"><span>${MOODS[e.mood - 1]} ${esc((e.emos || []).join(', '))}${e.note ? '<br><small>' + esc(e.note) + '</small>' : ''}</span><small>${JOURS[dow(e.d)]}</small></div>`).join('')}<small>Tu les as traversés. Ils sont aussi dans ton résumé psy du mois.</small></div>` : ''}
-    <div class="card"><b>📊 Ta semaine en bref</b><p>🍽️ Repas notés ${nLog}/7 jours<br>🏋️ ${w.salle} salle · 💃 ${w.danse} danse ${w.done ? '🏆' : ''}${nB ? `<br>💜 ${nB} crise${nB > 1 ? 's' : ''} notée${nB > 1 ? 's' : ''}, et tu as continué ensuite` : ''}</p></div>
+    <div class="card"><b>📊 Ta semaine en bref</b><p>🍽️ Repas notés ${nLog}/7 jours<br>🏋️ ${w.salle} salle · 💃 ${w.danse} danse ${w.done ? '🏆' : ''}<br>🧘 Yoga ${weekYoga(m).n}/${cfg.yogaGoal} ${weekYoga(m).done ? '🪷' : ''}<br>👟 ${weekSteps(m).ok} jour${weekSteps(m).ok > 1 ? 's' : ''} à ${(cfg.stepsGoal / 1000).toLocaleString('fr-FR')}k pas${nB ? `<br>💜 ${nB} crise${nB > 1 ? 's' : ''} notée${nB > 1 ? 's' : ''}, et tu as continué ensuite` : ''}</p></div>
     <div class="msg warm"><b>${pick(['Tu as fait de ton mieux avec ce que tu avais cette semaine. C\'est ça, avancer.', 'Regarde tout ce que tu as fait. Sérieusement, regarde.', 'Une semaine de plus à prendre soin de toi. Fière de toi.', 'Pas parfaite, mais présente. Et c\'est exactement ce qui marche.'])}</b></div>
     <button class="full" onclick="closeSheet()">Merci 💛</button>`);
 };
@@ -593,6 +595,8 @@ function monthText(ym) {
   if (gr.length) { L.push('', 'MES GRATITUDES'); gr.forEach(e => L.push(B(e.grat))); }
   let nLog = 0, sal = 0, dan = 0; for (let d = a; d <= end; d = addDays(d, 1)) { if (logged(d)) nLog++; (sport[d] || []).forEach(t => t === 'salle' ? sal++ : dan++); }
   L.push('', 'RÉGULARITÉ', B('Repas notés', `${nLog} jours sur ${nDays}`), B('Sport', `${sal} séance${sal > 1 ? 's' : ''} de salle, ${dan} de danse`));
+  { let yn = 0, ym2 = 0, so = 0, sn = 0; for (let d = a; d <= end; d = addDays(d, 1)) { if (yoga[d]) { yn++; ym2 += yoga[d]; } if (steps[d]) { sn++; if (steps[d] >= cfg.stepsGoal) so++; } }
+    L.push(B('Yoga', `${yn} séance${yn > 1 ? 's' : ''} (${ym2} min au total)`)); if (sn) L.push(B('Pas', `objectif atteint ${so} jours sur ${sn} notés`)); }
   L.push('', 'CE DONT JE VOUDRAIS PARLER', '• ');
   return L.join('\n');
 }
@@ -629,8 +633,62 @@ function sportMini() {
   const w = weekSport(monday(today())), td = sport[today()] || [];
   return `<div class="card"><div class="row between"><b>🏋️ Sport cette semaine</b><small>${w.salle} salle · ${w.danse} danse</small></div>
     <div class="mute" style="margin:4px 0 8px">${sportGoalTxt(w)}</div>
-    <div class="grid2"><button class="${td.includes('salle') ? '' : 'btn2'}" onclick="logSport('salle')">${td.includes('salle') ? '✅' : '＋'} Salle</button><button class="${td.includes('danse') ? '' : 'btn2'}" onclick="logSport('danse')">${td.includes('danse') ? '✅' : '＋'} Danse</button></div></div>`;
+    <div class="grid2"><button class="${td.includes('salle') ? '' : 'btn2'}" onclick="logSport('salle')">${td.includes('salle') ? '✅' : '＋'} Salle</button><button class="${td.includes('danse') ? '' : 'btn2'}" onclick="logSport('danse')">${td.includes('danse') ? '✅' : '＋'} Danse</button></div></div>` + yogaMini() + stepsMini();
 }
+// ---------- YOGA ----------
+const YBADGES = [[1, '🌱', 'Premier tapis'], [5, '🌿', 'Curieuse'], [12, '🌳', 'Régulière'], [25, '🧘', 'Yogi'], [50, '🪷', 'Zen master'], [100, '✨', 'Légende']];
+const yogaTotal = () => Object.keys(yoga).length;
+function weekYoga(m) { let n = 0, min = 0; for (let i = 0; i < 7; i++) { const v = yoga[addDays(m, i)]; if (v) { n++; min += v; } } return { n, min, done: n >= cfg.yogaGoal }; }
+function yogaBadge() { const t = yogaTotal(); let cur = null, next = YBADGES[0]; for (const b of YBADGES) { if (t >= b[0]) cur = b; else { next = b; break; } } if (cur === YBADGES[YBADGES.length - 1]) next = null; return { t, cur, next }; }
+function yogaMini() {
+  const w = weekYoga(monday(today())), done = yoga[today()];
+  return `<div class="card"><div class="row between"><b>🧘 Yoga</b><small>${w.n}/${cfg.yogaGoal} cette semaine</small></div>
+    <div class="dots" style="justify-content:flex-start">${[...Array(cfg.yogaGoal)].map((_, i) => `<b class="${i < w.n ? 'ok' : ''}">${i < w.n ? '✓' : ''}</b>`).join('')}</div>
+    ${done ? `<div class="msg">✅ Fait aujourd'hui (${done} min). Bravo !</div>` : `<div class="grid4" style="grid-template-columns:repeat(3,1fr)">${[15, 20, 30].map(n => `<button class="btn2" onclick="logYoga(${n})">✅ ${n} min</button>`).join('')}</div>`}</div>`;
+}
+window.logYoga = (min, k) => {
+  k = k || today(); const m = monday(k), before = weekYoga(m).done, bBefore = yogaBadge().cur;
+  if (yoga[k] && yoga[k] === min) { delete yoga[k]; save(); render(); toast('Séance de yoga retirée'); return; }
+  yoga[k] = min; save();
+  const w = weekYoga(m), bNow = yogaBadge().cur;
+  if (w.done && !before) { meta.yogaRewards = meta.yogaRewards || {}; if (!meta.yogaRewards[m]) meta.yogaRewards[m] = pick(cfg.rewards && cfg.rewards.length ? cfg.rewards : DEF.rewards); save(); render(); confetti(220); showYogaReward(m); }
+  else if (bNow && bNow !== bBefore) { render(); confetti(160); openSheet(`<div style="text-align:center"><div style="font-size:70px">${bNow[1]}</div><h2>Nouveau badge : ${bNow[2]} !</h2><p>${yogaTotal()} séance${yogaTotal() > 1 ? 's' : ''} de yoga au total. Tu es en train d'apprendre, pour de vrai.</p><button class="full" onclick="closeSheet()">Namaste 🙏</button></div>`); }
+  else { render(); confetti(70); toast(pick(['Tapis déroulé, séance faite 🧘', 'Ton corps et ta tête te remercient.', 'Respire. Tu viens de prendre soin de toi.', `Plus que ${Math.max(0, cfg.yogaGoal - w.n)} cette semaine !`])); }
+};
+function showYogaReward(m) {
+  openSheet(`<div style="text-align:center"><div style="font-size:70px">🪷</div><h2>${cfg.yogaGoal} séances de yoga cette semaine !</h2>
+    <p>Ta récompense yoga :</p><div class="msg warm" style="font-size:20px"><b>🎁 ${esc(meta.yogaRewards[m])}</b></div>
+    <p class="mute">Une nouvelle habitude se construit séance après séance. Tu es en plein dedans.</p>
+    <button class="full" onclick="closeSheet()">Namaste 🙏</button></div>`);
+}
+window.showYogaReward = showYogaReward;
+// ---------- PAS ----------
+function weekSteps(m) { let ok = 0, tot = 0, n = 0; for (let i = 0; i < 7; i++) { const v = steps[addDays(m, i)]; if (v) { n++; tot += v; if (v >= cfg.stepsGoal) ok++; } } return { ok, n, avg: n ? Math.round(tot / n) : 0 }; }
+function stepsMini() {
+  const v = steps[today()] || 0, w = weekSteps(monday(today()));
+  return `<div class="card"><div class="row between"><b>👟 Pas</b><small>${w.ok} jour${w.ok > 1 ? 's' : ''} à l'objectif cette semaine</small></div>
+    <div class="row between" style="margin-top:6px"><span class="big" style="font-size:30px">${v.toLocaleString('fr-FR')}</span><small>/ ${cfg.stepsGoal.toLocaleString('fr-FR')}</small></div>
+    ${barHTML(Math.min(v, cfg.stepsGoal), cfg.stepsGoal, 'var(--green)')}
+    ${v >= cfg.stepsGoal ? '<div class="mute">✅ Objectif atteint, bravo !</div>' : v ? `<div class="mute">Encore ${(cfg.stepsGoal - v).toLocaleString('fr-FR')} pas. Une petite marche ?</div>` : ''}
+    <button class="btn2 full" style="margin-top:8px" onclick="openSteps()">✏️ Noter mes pas</button></div>`;
+}
+window.openSteps = k => {
+  k = k || today();
+  openSheet(`<div class="row between"><h2 style="margin:0">👟 Mes pas</h2><button class="btn3" onclick="closeSheet()">Fermer</button></div>
+    <p class="mute">Regarde le chiffre dans l'app Santé (ou ta montre) et recopie-le. Tu peux le mettre à jour plusieurs fois par jour.</p>
+    <label>Jour</label><select id="stk">${[...Array(7)].map((_, i) => addDays(today(), -i)).map(d => `<option value="${d}" ${d === k ? 'selected' : ''}>${fmtDate(d)}${steps[d] ? ' · ' + steps[d].toLocaleString('fr-FR') : ''}</option>`).join('')}</select>
+    <label>Nombre de pas</label><input id="stv" type="number" inputmode="numeric" value="${steps[k] || ''}" placeholder="Ex : 8450">
+    <button class="full" style="margin-top:12px;padding:16px" onclick="saveSteps()">💾 Enregistrer</button>`);
+  $('#stk').onchange = e => { $('#stv').value = steps[e.target.value] || ''; };
+};
+window.saveSteps = () => {
+  const k = $('#stk').value, v = parseInt(String($('#stv').value).replace(/\s/g, ''), 10);
+  if (!(v >= 0) || v > 100000) { toast('Nombre de pas invalide'); return; }
+  const before = (steps[k] || 0) >= cfg.stepsGoal;
+  if (v) steps[k] = v; else delete steps[k];
+  save(); closeSheet(); render();
+  if (v >= cfg.stepsGoal && !before) { confetti(150); toast(`${(cfg.stepsGoal / 1000).toLocaleString('fr-FR')}k pas ! Tes jambes sont en feu 🔥`); } else toast('Pas notés ✅');
+};
 window.logSport = (type, k) => {
   k = k || today(); const m = monday(k), before = weekSport(m).done;
   const l = sport[k] = sport[k] || [];
@@ -650,7 +708,7 @@ function showReward(m) {
 window.showReward = showReward;
 function renderSport() {
   const m = monday(today()), w = weekSport(m);
-  $('#sub').textContent = 'Objectif : 2 salle + 1 danse, ou 3 salle';
+  $('#sub').textContent = 'Salle, danse, yoga et pas';
   let h = `<div class="card"><b>Cette semaine</b>
     <div class="grid2" style="grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px;text-align:center">${JOURS.map((j, i) => { const k = addDays(m, i), l = sport[k] || []; return `<div><small>${j}</small><div style="font-size:22px;min-height:56px;background:${l.length ? 'var(--lav2)' : 'var(--line)'};border-radius:12px;padding:4px 0;${k === today() ? 'outline:2px solid var(--peach)' : ''}">${l.map(t => t === 'salle' ? '🏋️' : '💃').join('<br>') || (k > today() ? '' : '·')}</div></div>`; }).join('')}</div>
     <div style="margin-top:12px">${['salle', 'danse'].map(t => { const n = w[t], goal = t === 'salle' ? (w.danse >= 1 ? 2 : 3) : 1; return `<div class="macro"><div class="lbl"><span>${SP[t]}</span><span><b>${n}</b> / ${goal}</span></div>${barHTML(Math.min(n, goal), goal, t === 'salle' ? 'var(--peach)' : 'var(--lav)')}</div>`; }).join('')}</div>
@@ -659,9 +717,24 @@ function renderSport() {
   h += `<div class="card"><b>Noter une séance</b><label>Jour</label><select id="spd">${[...Array(7)].map((_, i) => addDays(m, i)).filter(k => k <= today()).map(k => `<option value="${k}" ${k === today() ? 'selected' : ''}>${fmtDate(k)}</option>`).join('')}</select>
     <div class="grid2" style="margin-top:10px"><button onclick="logSport('salle',$('#spd').value)">＋ 🏋️ Salle</button><button onclick="logSport('danse',$('#spd').value)">＋ 💃 Danse</button></div>
     <small>Re-taper le même bouton le même jour retire la séance.</small></div>`;
+  const wy = weekYoga(m), yb = yogaBadge();
+  h += `<div class="card"><div class="row between"><b>🧘 Yoga</b><small>Objectif : ${cfg.yogaGoal}× 15-20 min / semaine</small></div>
+    <div class="grid2" style="grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px;text-align:center">${JOURS.map((j, i) => { const k = addDays(m, i); return `<div><small>${j}</small><div style="min-height:44px;background:${yoga[k] ? 'var(--lav2)' : 'var(--line)'};border-radius:12px;padding:4px 0;font-size:13px;${k === today() ? 'outline:2px solid var(--peach)' : ''}">${yoga[k] ? '✅<br>' + yoga[k] + "'" : ''}</div></div>`; }).join('')}</div>
+    <div class="macro"><div class="lbl"><span>Séances</span><span><b>${wy.n}</b> / ${cfg.yogaGoal}</span></div>${barHTML(Math.min(wy.n, cfg.yogaGoal), cfg.yogaGoal, 'var(--lav)')}</div>
+    <div class="msg ${wy.done ? 'warm' : ''}">${wy.done ? '🪷 Objectif yoga atteint !' : `Plus que ${cfg.yogaGoal - wy.n} séance${cfg.yogaGoal - wy.n > 1 ? 's' : ''} pour ta récompense 🎁`}</div>
+    ${wy.done && meta.yogaRewards && meta.yogaRewards[m] ? `<button class="full" onclick="showYogaReward('${m}')">🎁 Voir ma récompense yoga</button>` : ''}
+    <label>Cocher une séance</label><div class="grid4" style="grid-template-columns:repeat(3,1fr)">${[15, 20, 30].map(n => `<button class="btn2" onclick="logYoga(${n},$('#spd').value)">✅ ${n} min</button>`).join('')}</div>
+    <small>Le jour choisi est celui du sélecteur « Noter une séance » ci-dessus. Re-taper la même durée retire la séance.</small>
+    <div class="card" style="margin-bottom:0"><b>Badges</b><div class="row wrap" style="margin-top:6px;gap:12px">${YBADGES.map(b => `<div style="text-align:center;opacity:${yb.t >= b[0] ? 1 : .3}"><div style="font-size:28px">${b[1]}</div><small>${b[2]}<br>${b[0]}</small></div>`).join('')}</div>
+    <small>${yb.t} séance${yb.t > 1 ? 's' : ''} au total${yb.next ? ` · prochain badge dans ${yb.next[0] - yb.t}` : ''}</small></div></div>`;
+  const ws = weekSteps(m);
+  h += `<div class="card"><div class="row between"><b>👟 Pas</b><small>Objectif ${cfg.stepsGoal.toLocaleString('fr-FR')} / jour</small></div>
+    <div class="week" style="height:110px">${JOURS.map((j, i) => { const v = steps[addDays(m, i)] || 0; return `<div><small>${v ? (v / 1000).toFixed(1) + 'k' : ''}</small><i style="height:${Math.min(100, v / (cfg.stepsGoal * 1.3) * 100)}%;background:${v >= cfg.stepsGoal ? 'var(--green)' : 'var(--peach2)'}"></i>${j}</div>`; }).join('')}</div>
+    <p class="mute">${ws.ok} jour${ws.ok > 1 ? 's' : ''} à l'objectif · moyenne ${ws.avg.toLocaleString('fr-FR')} pas</p>
+    <button class="btn2 full" onclick="openSteps()">✏️ Noter mes pas</button></div>`;
   const hist = [...Array(8)].map((_, i) => addDays(m, -7 * (i + 1)));
   const okN = hist.filter(x => weekSport(x).done).length;
-  h += `<div class="card"><b>Les 8 dernières semaines</b><div class="dots" style="flex-wrap:wrap">${hist.reverse().map(x => `<b class="${weekSport(x).done ? 'ok' : ''}" title="${fmtShort(x)}">${weekSport(x).done ? '🏆' : ''}</b>`).join('')}</div>
+  h += `<div class="card"><b>Les 8 dernières semaines</b><div class="dots" style="flex-wrap:wrap">${hist.reverse().map(x => `<b class="${weekSport(x).done ? 'ok' : ''}" title="${fmtShort(x)}">${weekSport(x).done ? '🏆' : ''}${weekYoga(x).done ? '🪷' : ''}</b>`).join('')}</div>
     <div class="mute" style="text-align:center">${okN ? `${okN} semaine${okN > 1 ? 's' : ''} réussie${okN > 1 ? 's' : ''}. Ça, c'est de la régularité.` : 'Ton historique commence maintenant. Première 🏆 en vue.'}</div></div>`;
   $('#view').innerHTML = h;
 }
@@ -779,6 +852,9 @@ function renderSettings() {
   <div class="card"><b>⏰ Heures des repas (rappels)</b>
     <div class="grid2">${Object.entries(MEALS).map(([k, v]) => `<div><label>${v}</label><input type="time" id="t_${k}" value="${cfg.meals[k] || ''}"></div>`).join('')}</div>
     <label>💭 Rappel humeur du soir</label><input type="time" id="smood" value="${cfg.moodTime || ''}">
+    <div class="grid2"><div><label>🧘 Rappel yoga</label><input type="time" id="syt" value="${cfg.yogaTime || ''}"></div>
+    <div><label>Jours yoga</label><select id="syd">${[['MO,WE,FR', 'Lun, Mer, Ven'], ['TU,TH,SA', 'Mar, Jeu, Sam'], ['MO,WE,SA', 'Lun, Mer, Sam'], ['TU,TH,SU', 'Mar, Jeu, Dim']].map(([v, l]) => `<option value="${v}" ${cfg.yogaDays === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    <div><label>👟 Objectif pas / jour</label><input type="number" inputmode="numeric" id="sstep" value="${cfg.stepsGoal}"></div></div>
     <label>Jour de la photo hebdo</label><select id="sday">${['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map((d, i) => `<option value="${i}" ${+cfg.photoDay === i ? 'selected' : ''}>${d}</option>`).join('')}</select>
     <button class="full" style="margin-top:14px" onclick="saveCfg()">💾 Enregistrer</button></div>
   <div class="card"><b>🔔 Rappels sur ton iPhone</b>
@@ -797,7 +873,7 @@ window.saveCfg = () => {
   cfg.kcal = +$('#sk').value || cfg.kcal; cfg.p = +$('#sp').value || 0; cfg.c = +$('#sc').value || 0; cfg.f = +$('#sf').value || 0;
   cfg.compensate = $('#scomp').checked; cfg.skipBinge = $('#sskip').checked;
   cfg.maxPct = Math.min(25, Math.max(0, +$('#smax').value || 0)); cfg.minKcal = +$('#smin').value || 0;
-  Object.keys(MEALS).forEach(k => cfg.meals[k] = $('#t_' + k).value); cfg.photoDay = +$('#sday').value; cfg.moodTime = $('#smood').value; cfg.rewards = $('#srw').value.split('\n').map(x => x.trim()).filter(Boolean); cfg.set = true;
+  Object.keys(MEALS).forEach(k => cfg.meals[k] = $('#t_' + k).value); cfg.photoDay = +$('#sday').value; cfg.moodTime = $('#smood').value; cfg.yogaTime = $('#syt').value; cfg.yogaDays = $('#syd').value; cfg.stepsGoal = +$('#sstep').value || 10000; cfg.rewards = $('#srw').value.split('\n').map(x => x.trim()).filter(Boolean); cfg.set = true;
   save(); toast('Enregistré ✅'); render();
 };
 
@@ -823,7 +899,8 @@ function exportICS() {
   evs.push(ev('weight', md, '08:00', '⚖️ Pesée du mois', 'Le matin, à jeun. Puis note-la dans La Pêche.', 'FREQ=MONTHLY;BYMONTHDAY=1'));
   const sun = new Date(t); while (sun.getDay() !== 0) sun.setDate(sun.getDate() + 1);
   evs.push(ev('weekly', sun, '19:00', '📖 Ton récap de la semaine', 'Tes fiertés, tes gratitudes, ta semaine. Va le lire dans La Pêche.', 'FREQ=WEEKLY;BYDAY=SU'));
-  if (cfg.moodTime) evs.push(ev('mood', t, cfg.moodTime, '💭 Comment tu te sens ?', '1 tap sur un emoji. Une fierté du jour ?', 'FREQ=DAILY'));
+  if (cfg.moodTime) evs.push(ev('mood', t, cfg.moodTime, '💭 Humeur + pas du jour', '1 tap sur un emoji, une fierté, et note tes pas (app Santé).', 'FREQ=DAILY'));
+  if (cfg.yogaTime && cfg.yogaDays) evs.push(ev('yoga', t, cfg.yogaTime, '🧘 15 min de yoga', 'Juste 15 minutes. Déroule le tapis, c\'est déjà gagné.', 'FREQ=WEEKLY;BYDAY=' + cfg.yogaDays));
   evs.push(ev('psy', md, '18:00', '🧠 Résumé du mois pour ton psy', 'Onglet Semaine, Résumé psy. Partage-le ou garde-le pour ta séance.', 'FREQ=MONTHLY;BYMONTHDAY=1'));
   const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//La Peche//FR', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:La Pêche', ...evs, 'END:VCALENDAR'].join('\r\n');
   download(new Blob([ics], { type: 'text/calendar;charset=utf-8' }), 'la-peche-rappels.ics');
@@ -837,7 +914,7 @@ const b64 = blob => new Promise(r => { const fr = new FileReader(); fr.onload = 
 window.backup = async () => {
   const ph = await DB.all().catch(() => []);
   const photos = []; for (const p of ph) photos.push({ id: p.id, date: p.date, data: await b64(p.blob) });
-  const data = { v: 1, at: new Date().toISOString(), cfg, entries, foods, binges, weights, meta, sport, journal, photos };
+  const data = { v: 1, at: new Date().toISOString(), cfg, entries, foods, binges, weights, meta, sport, journal, steps, yoga, photos };
   download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `la-peche-sauvegarde-${today()}.json`);
 };
 async function restore(e) {
@@ -845,7 +922,7 @@ async function restore(e) {
   try {
     const d = JSON.parse(await f.text()); if (!d.entries) throw 0;
     if (!confirm('Remplacer les données actuelles par cette sauvegarde ?')) return;
-    cfg = Object.assign({}, DEF, d.cfg); entries = d.entries || {}; foods = d.foods || {}; binges = d.binges || {}; weights = d.weights || []; meta = d.meta || {}; sport = d.sport || {}; journal = d.journal || {};
+    cfg = Object.assign({}, DEF, d.cfg); entries = d.entries || {}; foods = d.foods || {}; binges = d.binges || {}; weights = d.weights || []; meta = d.meta || {}; sport = d.sport || {}; journal = d.journal || {}; steps = d.steps || {}; yoga = d.yoga || {};
     for (const p of d.photos || []) { const blob = await (await fetch(p.data)).blob(); await DB.put({ id: p.id, date: p.date, blob }); }
     save(); toast('Sauvegarde restaurée ✅'); render();
   } catch { toast('Fichier de sauvegarde invalide'); }

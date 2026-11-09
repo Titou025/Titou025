@@ -1,4 +1,4 @@
-const CACHE = 'la-peche-v5';
+const CACHE = 'la-peche-v6';
 const FILES = ['./', './index.html', './style.css', './app.js', './manifest.json', './icon-180.png', './icon-192.png', './icon-512.png', './lib/html5-qrcode.min.js', './ciqual.json'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
