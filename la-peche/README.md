@@ -9,6 +9,8 @@ Suivi calories + macros pensé TDAH et hyperphagie. Web app installable sur iPho
 - Barre de progression sans rouge, message bienveillant si dépassement
 - Lissage hebdo de l'écart (max -10 %/jour, plancher, protéines fixes, jours de crise exclus)
 - Bouton « J'ai fait une crise » : déclencheurs, note, zéro jugement
+- Objectifs 1700 kcal / P140 / L40 / G195, lipides et glucides affichés comme budget flexible
+- Suivi sport : récompense si 2 salle + 1 danse ou 3 salle dans la semaine
 - Photo hebdo + comparateur avant/après mensuel
 - Pesée mensuelle, tendance douce (chiffres masqués par défaut)
 - Rappels via calendrier iPhone (.ics), sauvegarde/restauration JSON

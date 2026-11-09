@@ -7,7 +7,8 @@ const S = {
   set(k, v) { try { localStorage.setItem('lp_' + k, JSON.stringify(v)); } catch (e) { toast('Stockage plein : fais une sauvegarde puis supprime de vieilles photos.'); } }
 };
 const DEF = {
-  kcal: 1800, p: 110, f: 60, c: 200,
+  kcal: 1700, p: 140, f: 40, c: 195,
+  rewards: ['Un bain ou une douche longue avec musique', 'Un épisode de série sans culpabilité', 'Un petit achat plaisir (vernis, livre, plante)', 'Une sortie avec une amie'],
   compensate: true, maxPct: 10, minKcal: 1400, skipBinge: true,
   meals: { pdj: '08:30', dej: '12:30', gouter: '16:30', diner: '19:30' },
   photoDay: 0, // 0 = dimanche
@@ -19,8 +20,9 @@ let entries = S.get('entries', {});   // { 'YYYY-MM-DD': [entry] }
 let foods = S.get('foods', {});       // { key: {name,brand,per100,lastQty,uses,last,serving} }
 let binges = S.get('binges', {});     // { date: {triggers:[], note, ts} }
 let weights = S.get('weights', []);   // [{date,kg}]
-let meta = S.get('meta', {});         // {lastCompare}
-const save = () => { S.set('cfg', cfg); S.set('entries', entries); S.set('foods', foods); S.set('binges', binges); S.set('weights', weights); S.set('meta', meta); };
+let meta = S.get('meta', {});         // {lastCompare, rewards:{monday:text}}
+let sport = S.get('sport', {});       // { date: ['salle'|'danse'] }
+const save = () => { S.set('cfg', cfg); S.set('entries', entries); S.set('foods', foods); S.set('binges', binges); S.set('weights', weights); S.set('meta', meta); S.set('sport', sport); };
 
 // ---------- photos (IndexedDB) ----------
 const DB = {
@@ -105,7 +107,7 @@ function closeSheet() { if (typeof stopScan === 'function') stopScan(); $('#shee
 
 function render() {
   $('#fab').classList.toggle('hidden', tab !== 'today' && tab !== 'week');
-  ({ today: renderToday, week: renderWeek, body: renderBody, settings: renderSettings })[tab]();
+  ({ today: renderToday, week: renderWeek, sport: renderSport, body: renderBody, settings: renderSettings })[tab]();
 }
 
 function barHTML(val, max, color) {
@@ -131,11 +133,14 @@ function renderToday() {
     <div class="mute">${over ? 'kcal mangées' : 'kcal restantes'} · objectif ${t.kcal}</div></div>
     <div style="font-size:42px">${over ? '🫶' : tot.kcal === 0 ? '🍽️' : left < t.kcal * 0.25 ? '🎯' : '🍑'}</div></div>
     <div class="bar ${over ? 'over' : ''}"><i style="width:${Math.min(100, tot.kcal / t.kcal * 100)}%"></i></div>
-    ${macroHTML('Protéines', tot.p, t.p, 'var(--p)')}${macroHTML('Glucides', tot.c, t.c, 'var(--c)')}${macroHTML('Lipides', tot.f, t.f, 'var(--f)')}
+    ${macroHTML('💪 Protéines <small>(priorité 2)</small>', tot.p, t.p, 'var(--p)')}
+    ${tot.p >= t.p ? '<div class="mute">✅ Protéines atteintes, bien joué !</div>' : tot.kcal > 0 ? `<div class="mute">Encore ${r0(t.p - tot.p)} g de protéines.</div>` : ''}
+    <div class="macro"><div class="lbl"><span>🔄 Lipides + glucides <small>(flexibles)</small></span><span><b>${r0(tot.f * 9 + tot.c * 4)}</b> / ${r0(t.f * 9 + t.c * 4)} kcal</span></div>${barHTML(tot.f * 9 + tot.c * 4, t.f * 9 + t.c * 4, 'var(--c)')}
+    <small>Lipides ${r0(tot.f)}/${t.f} g · Glucides ${r0(tot.c)}/${t.c} g · 10 g de lipides = 22 g de glucides</small></div>
   </div>`;
   if (over) h += `<div class="msg warm">🫶 <b>${pick(MSG.over)}</b><br><small>${dow(k) === 6 ? 'Demain une nouvelle semaine commence, compteur à zéro.' : cfg.compensate && !(cfg.skipBinge && binges[k]) ? `L'écart sera lissé en douceur sur les jours restants (max -${cfg.maxPct}%/jour, jamais sous ${cfg.minKcal} kcal).` : 'Pas de rattrapage prévu pour ce jour. C\'est voulu.'}</small></div>`;
   if (t.reduce > 0) h += `<div class="msg">🔧 Objectif ajusté de <b>-${t.reduce} kcal</b> aujourd'hui pour lisser la semaine. Protéines inchangées.</div>`;
-  if (isToday) h += todosHTML();
+  if (isToday) h += todosHTML() + sportMini();
   if (binges[k]) h += `<div class="msg">💜 Crise notée ce jour. ${cfg.skipBinge ? 'Pas de rattrapage calorique dessus, c\'est voulu.' : ''}</div>`;
 
   for (const m of Object.keys(MEALS)) {
@@ -446,6 +451,60 @@ function renderWeek() {
   $('#view').innerHTML = h;
 }
 
+// ---------- SPORT ----------
+const SP = { salle: '🏋️ Salle', danse: '💃 Danse' };
+function weekSport(m) {
+  let salle = 0, danse = 0;
+  for (let i = 0; i < 7; i++) (sport[addDays(m, i)] || []).forEach(t => t === 'salle' ? salle++ : danse++);
+  return { salle, danse, done: (salle >= 2 && danse >= 1) || salle >= 3 };
+}
+function sportGoalTxt(w) {
+  if (w.done) return '🏆 Objectif de la semaine atteint !';
+  const ns = Math.max(0, 2 - w.salle), nd = Math.max(0, 1 - w.danse), b = 3 - w.salle;
+  if (ns + nd <= b) return `Plus que ${[ns ? ns + ' salle' : '', nd ? '1 danse' : ''].filter(Boolean).join(' + ')} pour ta récompense 🎁`;
+  return `Plus que ${b} salle pour ta récompense 🎁`;
+}
+function sportMini() {
+  const w = weekSport(monday(today())), td = sport[today()] || [];
+  return `<div class="card"><div class="row between"><b>🏋️ Sport cette semaine</b><small>${w.salle} salle · ${w.danse} danse</small></div>
+    <div class="mute" style="margin:4px 0 8px">${sportGoalTxt(w)}</div>
+    <div class="grid2"><button class="${td.includes('salle') ? '' : 'btn2'}" onclick="logSport('salle')">${td.includes('salle') ? '✅' : '＋'} Salle</button><button class="${td.includes('danse') ? '' : 'btn2'}" onclick="logSport('danse')">${td.includes('danse') ? '✅' : '＋'} Danse</button></div></div>`;
+}
+window.logSport = (type, k) => {
+  k = k || today(); const m = monday(k), before = weekSport(m).done;
+  const l = sport[k] = sport[k] || [];
+  const i = l.indexOf(type);
+  if (i >= 0) { l.splice(i, 1); if (!l.length) delete sport[k]; save(); render(); toast('Séance retirée'); return; }
+  l.push(type); save();
+  const w = weekSport(m);
+  if (w.done && !before) { meta.rewards = meta.rewards || {}; if (!meta.rewards[m]) meta.rewards[m] = pick(cfg.rewards && cfg.rewards.length ? cfg.rewards : DEF.rewards); save(); render(); confetti(220); showReward(m); }
+  else { render(); confetti(70); toast(pick(['Séance notée 💪 Fière de toi !', 'Et une de plus ! 🔥', 'Ton corps te dit merci.', 'Tu l\'as fait. C\'est ça qui compte.'])); }
+};
+function showReward(m) {
+  openSheet(`<div style="text-align:center"><div style="font-size:70px">🏆</div><h2>Objectif sport atteint !</h2>
+    <p>Ta récompense de la semaine :</p><div class="msg warm" style="font-size:20px"><b>🎁 ${esc(meta.rewards[m])}</b></div>
+    <p class="mute">Tu l'as méritée. Vraiment. Prends-la sans culpabilité.</p>
+    <button class="full" onclick="closeSheet()">Merci moi-même 😎</button></div>`);
+}
+window.showReward = showReward;
+function renderSport() {
+  const m = monday(today()), w = weekSport(m);
+  $('#sub').textContent = 'Objectif : 2 salle + 1 danse, ou 3 salle';
+  let h = `<div class="card"><b>Cette semaine</b>
+    <div class="grid2" style="grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px;text-align:center">${JOURS.map((j, i) => { const k = addDays(m, i), l = sport[k] || []; return `<div><small>${j}</small><div style="font-size:22px;min-height:56px;background:${l.length ? 'var(--lav2)' : 'var(--line)'};border-radius:12px;padding:4px 0;${k === today() ? 'outline:2px solid var(--peach)' : ''}">${l.map(t => t === 'salle' ? '🏋️' : '💃').join('<br>') || (k > today() ? '' : '·')}</div></div>`; }).join('')}</div>
+    <div style="margin-top:12px">${['salle', 'danse'].map(t => { const n = w[t], goal = t === 'salle' ? (w.danse >= 1 ? 2 : 3) : 1; return `<div class="macro"><div class="lbl"><span>${SP[t]}</span><span><b>${n}</b> / ${goal}</span></div>${barHTML(Math.min(n, goal), goal, t === 'salle' ? 'var(--peach)' : 'var(--lav)')}</div>`; }).join('')}</div>
+    <div class="msg ${w.done ? 'warm' : ''}">${sportGoalTxt(w)}</div>
+    ${w.done && meta.rewards && meta.rewards[m] ? `<button class="full" onclick="showReward('${m}')">🎁 Voir ma récompense</button>` : ''}</div>`;
+  h += `<div class="card"><b>Noter une séance</b><label>Jour</label><select id="spd">${[...Array(7)].map((_, i) => addDays(m, i)).filter(k => k <= today()).map(k => `<option value="${k}" ${k === today() ? 'selected' : ''}>${fmtDate(k)}</option>`).join('')}</select>
+    <div class="grid2" style="margin-top:10px"><button onclick="logSport('salle',$('#spd').value)">＋ 🏋️ Salle</button><button onclick="logSport('danse',$('#spd').value)">＋ 💃 Danse</button></div>
+    <small>Re-taper le même bouton le même jour retire la séance.</small></div>`;
+  const hist = [...Array(8)].map((_, i) => addDays(m, -7 * (i + 1)));
+  const okN = hist.filter(x => weekSport(x).done).length;
+  h += `<div class="card"><b>Les 8 dernières semaines</b><div class="dots" style="flex-wrap:wrap">${hist.reverse().map(x => `<b class="${weekSport(x).done ? 'ok' : ''}" title="${fmtShort(x)}">${weekSport(x).done ? '🏆' : ''}</b>`).join('')}</div>
+    <div class="mute" style="text-align:center">${okN ? `${okN} semaine${okN > 1 ? 's' : ''} réussie${okN > 1 ? 's' : ''}. Ça, c'est de la régularité.` : 'Ton historique commence maintenant. Première 🏆 en vue.'}</div></div>`;
+  $('#view').innerHTML = h;
+}
+
 // ---------- CORPS ----------
 async function renderBody() {
   $('#sub').textContent = 'Photos chaque semaine · poids chaque mois';
@@ -546,7 +605,10 @@ function renderSettings() {
     <div><label>Protéines (g)</label><input id="sp" type="number" inputmode="numeric" value="${cfg.p}"></div>
     <div><label>Glucides (g)</label><input id="sc" type="number" inputmode="numeric" value="${cfg.c}"></div>
     <div><label>Lipides (g)</label><input id="sf" type="number" inputmode="numeric" value="${cfg.f}"></div></div>
-    <small id="mk">Tes macros font ${mk} kcal (P×4 + G×4 + L×9).</small></div>
+    <small id="mk">Tes macros font ${mk} kcal (P×4 + G×4 + L×9).</small>
+    <div class="msg">Priorité 1 : les calories. Priorité 2 : les protéines. Lipides et glucides sont flexibles entre eux. Mêmes chiffres tous les jours, sport ou repos.</div></div>
+  <div class="card"><b>🎁 Mes récompenses sport</b><p class="mute">Une par ligne. Évite la nourriture comme récompense, ça aide avec l'hyperphagie.</p>
+    <textarea id="srw" rows="5">${esc((cfg.rewards || []).join('\n'))}</textarea></div>
   <div class="card"><b>🔧 Lissage après un dépassement</b>
     <label><input type="checkbox" id="scomp" style="width:auto" ${cfg.compensate ? 'checked' : ''}> Réduire un peu l'objectif des jours suivants (même semaine)</label>
     <div class="grid2"><div><label>Réduction max / jour (%)</label><input id="smax" type="number" value="${cfg.maxPct}"></div>
@@ -573,7 +635,7 @@ window.saveCfg = () => {
   cfg.kcal = +$('#sk').value || cfg.kcal; cfg.p = +$('#sp').value || 0; cfg.c = +$('#sc').value || 0; cfg.f = +$('#sf').value || 0;
   cfg.compensate = $('#scomp').checked; cfg.skipBinge = $('#sskip').checked;
   cfg.maxPct = Math.min(25, Math.max(0, +$('#smax').value || 0)); cfg.minKcal = +$('#smin').value || 0;
-  Object.keys(MEALS).forEach(k => cfg.meals[k] = $('#t_' + k).value); cfg.photoDay = +$('#sday').value; cfg.set = true;
+  Object.keys(MEALS).forEach(k => cfg.meals[k] = $('#t_' + k).value); cfg.photoDay = +$('#sday').value; cfg.rewards = $('#srw').value.split('\n').map(x => x.trim()).filter(Boolean); cfg.set = true;
   save(); toast('Enregistré ✅'); render();
 };
 
@@ -610,7 +672,7 @@ const b64 = blob => new Promise(r => { const fr = new FileReader(); fr.onload = 
 window.backup = async () => {
   const ph = await DB.all().catch(() => []);
   const photos = []; for (const p of ph) photos.push({ id: p.id, date: p.date, data: await b64(p.blob) });
-  const data = { v: 1, at: new Date().toISOString(), cfg, entries, foods, binges, weights, meta, photos };
+  const data = { v: 1, at: new Date().toISOString(), cfg, entries, foods, binges, weights, meta, sport, photos };
   download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `la-peche-sauvegarde-${today()}.json`);
 };
 async function restore(e) {
@@ -618,7 +680,7 @@ async function restore(e) {
   try {
     const d = JSON.parse(await f.text()); if (!d.entries) throw 0;
     if (!confirm('Remplacer les données actuelles par cette sauvegarde ?')) return;
-    cfg = Object.assign({}, DEF, d.cfg); entries = d.entries || {}; foods = d.foods || {}; binges = d.binges || {}; weights = d.weights || []; meta = d.meta || {};
+    cfg = Object.assign({}, DEF, d.cfg); entries = d.entries || {}; foods = d.foods || {}; binges = d.binges || {}; weights = d.weights || []; meta = d.meta || {}; sport = d.sport || {};
     for (const p of d.photos || []) { const blob = await (await fetch(p.data)).blob(); await DB.put({ id: p.id, date: p.date, blob }); }
     save(); toast('Sauvegarde restaurée ✅'); render();
   } catch { toast('Fichier de sauvegarde invalide'); }
