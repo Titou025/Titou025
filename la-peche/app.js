@@ -12,6 +12,7 @@ const DEF = {
   compensate: true, maxPct: 10, minKcal: 1400, skipBinge: true,
   meals: { pdj: '08:30', dej: '12:30', gouter: '16:30', diner: '19:30' },
   photoDay: 0, // 0 = dimanche
+  moodTime: '21:00',
   showWeight: false, set: false
 };
 let cfg = Object.assign({}, DEF, S.get('cfg', {}));
@@ -22,7 +23,8 @@ let binges = S.get('binges', {});     // { date: {triggers:[], note, ts} }
 let weights = S.get('weights', []);   // [{date,kg}]
 let meta = S.get('meta', {});         // {lastCompare, rewards:{monday:text}}
 let sport = S.get('sport', {});       // { date: ['salle'|'danse'] }
-const save = () => { S.set('cfg', cfg); S.set('entries', entries); S.set('foods', foods); S.set('binges', binges); S.set('weights', weights); S.set('meta', meta); S.set('sport', sport); };
+let journal = S.get('journal', {});   // { date: [{ts,mood,emos,note,pride,grat}] }
+const save = () => { S.set('cfg', cfg); S.set('entries', entries); S.set('foods', foods); S.set('binges', binges); S.set('weights', weights); S.set('meta', meta); S.set('sport', sport); S.set('journal', journal); };
 
 // ---------- photos (IndexedDB) ----------
 const DB = {
@@ -140,7 +142,7 @@ function renderToday() {
   </div>`;
   if (over) h += `<div class="msg warm">🫶 <b>${pick(MSG.over)}</b><br><small>${dow(k) === 6 ? 'Demain une nouvelle semaine commence, compteur à zéro.' : cfg.compensate && !(cfg.skipBinge && binges[k]) ? `L'écart sera lissé en douceur sur les jours restants (max -${cfg.maxPct}%/jour, jamais sous ${cfg.minKcal} kcal).` : 'Pas de rattrapage prévu pour ce jour. C\'est voulu.'}</small></div>`;
   if (t.reduce > 0) h += `<div class="msg">🔧 Objectif ajusté de <b>-${t.reduce} kcal</b> aujourd'hui pour lisser la semaine. Protéines inchangées.</div>`;
-  if (isToday) h += todosHTML() + sportMini();
+  if (isToday) h += recapTodo() + journalMini() + todosHTML() + sportMini();
   if (binges[k]) h += `<div class="msg">💜 Crise notée ce jour. ${cfg.skipBinge ? 'Pas de rattrapage calorique dessus, c\'est voulu.' : ''}</div>`;
 
   for (const m of Object.keys(MEALS)) {
@@ -464,7 +466,9 @@ function renderWeek() {
   const maxV = Math.max(cfg.kcal * 1.3, ...days.map(d => d.t.kcal));
   days.forEach(d => { if (logged(d.k)) { tot += d.t.kcal; budget += cfg.kcal; nLog++; mac.p += d.t.p; mac.c += d.t.c; mac.f += d.t.f; } });
   const avg = nLog ? r0(tot / nLog) : 0;
-  let h = `<div class="card"><b>Jours notés</b><div class="dots">${days.map((d, i) => `<b class="${logged(d.k) ? 'ok' : ''}">${logged(d.k) ? '✓' : JOURS[i][0]}</b>`).join('')}</div>
+  let h = `<div class="card"><b>💭 Journal</b><div class="grid2" style="margin-top:8px"><button onclick="openRecap()">📖 Récap semaine</button><button class="btn2" onclick="openMonth()">🧠 Résumé psy</button></div>
+    <small style="display:block;margin-top:8px">Le résumé du mois est en bullet points, prêt à partager ou à lire en séance.</small></div>`;
+  h += `<div class="card"><b>Jours notés</b><div class="dots">${days.map((d, i) => `<b class="${logged(d.k) ? 'ok' : ''}">${logged(d.k) ? '✓' : JOURS[i][0]}</b>`).join('')}</div>
     <div class="mute" style="text-align:center">${nLog === 7 ? 'Semaine parfaite côté suivi 🏆' : nLog >= 5 ? 'Super régularité 🔥' : nLog >= 3 ? 'Bonne base, continue 💪' : 'Chaque jour noté compte. On y va un jour à la fois.'}</div></div>`;
   h += `<div class="card"><b>Calories par jour</b><div class="week">${days.map((d, i) => `<div><small>${d.t.kcal ? r0(d.t.kcal) : ''}</small><i class="${d.k === today() ? 'today' : d.t.kcal > d.tg.kcal ? 'over' : ''}" style="height:${d.t.kcal / maxV * 100}%"></i>${JOURS[i]}${binges[d.k] ? '💜' : ''}</div>`).join('')}</div>
     <small>Violet = au-dessus de l'objectif du jour. Pas un échec, juste une info.</small></div>`;
@@ -482,6 +486,131 @@ function renderWeek() {
   }
   $('#view').innerHTML = h;
 }
+
+// ---------- JOURNAL ÉMOTIONS ----------
+const MOODS = ['😞', '😕', '😐', '🙂', '😄'], MOODL = ['Très mal', 'Pas bien', 'Neutre', 'Bien', 'Super'];
+const EMO_NEG = ['Triste', 'Anxieuse', 'Stressée', 'En colère', 'Seule', 'Fatiguée', 'Frustrée', 'Honteuse', 'Coupable', 'Vide', 'Submergée', 'Irritable'];
+const EMO_POS = ['Fière', 'Reconnaissante', 'Calme', 'Joyeuse', 'Motivée', 'Soulagée', 'Aimée', 'Confiante', 'Énergique', 'Apaisée'];
+const PQ = {
+  note: ['Qu\'est-ce qui s\'est passé juste avant ?', 'Où tu le sens dans ton corps ?', 'Si une amie vivait ça, tu lui dirais quoi ?', 'Qu\'est-ce qui t\'aiderait, là, maintenant ?', 'C\'est lié à quelqu\'un ou à quelque chose ?', 'Raconte en 3 mots.'],
+  pride: ['Une chose faite malgré la flemme ?', 'Un truc, même minuscule, que tu as réussi ?', 'Un moment où tu as été gentille avec toi ?', 'Tu as noté un repas ? Bu de l\'eau ? Ça compte !', 'Une décision dont tu es contente ?'],
+  grat: ['Une personne qui t\'a fait du bien ?', 'Un petit plaisir du jour ?', 'Quelque chose de beau vu ou entendu ?', 'Un truc qui s\'est mieux passé que prévu ?', 'Une chose de ton corps qui t\'a aidée aujourd\'hui ?']
+};
+function journalMini() {
+  const n = (journal[today()] || []).length;
+  return `<div class="card"><div class="row between"><b>💭 Comment tu te sens ?</b>${n ? `<small>${n} note${n > 1 ? 's' : ''} aujourd'hui</small>` : ''}</div>
+    <div class="row between" style="margin:10px 0">${MOODS.map((e, i) => `<button class="chip" style="font-size:26px;padding:6px 10px" onclick="openMood(${i + 1})" aria-label="${MOODL[i]}">${e}</button>`).join('')}</div>
+    <div class="grid2"><button class="btn2" onclick="openMood(0,'pride')">🌟 Une fierté</button><button class="btn2" onclick="openMood(0,'grat')">🙏 Reconnaissante</button></div></div>`;
+}
+let J = {};
+window.openMood = (mood, focus) => {
+  J = { mood: mood || 0, emos: [], focus }; $('#sheetIn').innerHTML = '';
+  drawMood();
+};
+function drawMood() {
+  const low = J.mood && J.mood <= 2, emoList = low ? EMO_NEG.concat(EMO_POS) : EMO_POS.concat(EMO_NEG);
+  const keep = id => ($('#' + id) || {}).value || '';
+  const v = { note: keep('jn'), pride: keep('jp'), grat: keep('jg') };
+  openSheet(`<div class="row between"><h2 style="margin:0">💭 ${J.focus === 'pride' ? 'Une fierté' : J.focus === 'grat' ? 'Reconnaissante pour…' : 'Mon humeur'}</h2><button class="btn3" onclick="closeSheet()">Fermer</button></div>
+    <div class="row between" style="margin:10px 0">${MOODS.map((e, i) => `<button class="chip ${J.mood === i + 1 ? 'on' : ''}" style="font-size:24px;padding:6px 10px" onclick="J.mood=${i + 1};drawMood()">${e}</button>`).join('')}</div>
+    ${J.mood ? `<div class="mute" style="text-align:center">${MOODL[J.mood - 1]}</div>` : ''}
+    ${low ? `<div class="msg">💜 Merci de le noter. Ce que tu ressens est valable. Tu n'as rien à réparer tout de suite : écrire, c'est déjà prendre soin de toi.</div>` : ''}
+    ${J.mood === 1 ? `<div class="msg warm"><small>Si c'est vraiment trop lourd : <b>3114</b>, gratuit, 24h/24, des pros à l'écoute. En danger immédiat : <b>15</b> ou <b>112</b>.</small></div>` : ''}
+    <label>Ce que je ressens (plusieurs choix)</label>
+    <div class="chips" id="jemo">${emoList.map(e => `<button class="chip ${J.emos.includes(e) ? 'on' : ''}" onclick="this.classList.toggle('on');J.emos=[...document.querySelectorAll('#jemo .chip.on')].map(c=>c.textContent)">${e}</button>`).join('')}</div>
+    <label>Ce qui se passe <button class="btn3" style="padding:0 4px" onclick="$('#jn').placeholder=pick(PQ.note)">💡 une question</button></label>
+    <textarea id="jn" rows="3" placeholder="${esc(pick(PQ.note))}">${esc(v.note)}</textarea>
+    <label>🌟 Une fierté <button class="btn3" style="padding:0 4px" onclick="$('#jp').placeholder=pick(PQ.pride)">💡 une idée</button></label>
+    <textarea id="jp" rows="2" placeholder="${esc(pick(PQ.pride))}">${esc(v.pride)}</textarea>
+    <label>🙏 Je suis reconnaissante pour <button class="btn3" style="padding:0 4px" onclick="$('#jg').placeholder=pick(PQ.grat)">💡 une idée</button></label>
+    <textarea id="jg" rows="2" placeholder="${esc(pick(PQ.grat))}">${esc(v.grat)}</textarea>
+    <small>Tout est optionnel. Un emoji seul, c'est déjà bien.</small>
+    <button class="full" style="margin-top:12px;padding:16px" onclick="saveMood()">💾 Enregistrer</button>`);
+  if (J.focus) setTimeout(() => { const el = $(J.focus === 'pride' ? '#jp' : '#jg'); el && el.focus(); }, 300);
+}
+window.PQ = PQ; window.pick = pick;
+window.saveMood = () => {
+  const e = { ts: Date.now(), mood: J.mood || 0, emos: J.emos, note: $('#jn').value.trim(), pride: $('#jp').value.trim(), grat: $('#jg').value.trim() };
+  if (!e.mood && !e.emos.length && !e.note && !e.pride && !e.grat) { toast('Choisis au moins un emoji ou écris un mot'); return; }
+  (journal[today()] = journal[today()] || []).push(e); save(); closeSheet(); render();
+  if (e.pride || e.grat) { confetti(90); toast(e.pride ? 'Fierté notée 🌟 Tu la reliras dimanche.' : 'Noté 🙏 Joli.'); }
+  else toast(e.mood && e.mood <= 2 ? 'Noté. Prends soin de toi 💜' : 'Noté ✅');
+};
+const jRange = (a, b) => { const out = []; for (let d = a; d <= b; d = addDays(d, 1)) (journal[d] || []).forEach(e => out.push({ d, ...e })); return out; };
+const avgMood = l => { const m = l.filter(e => e.mood); return m.length ? m.reduce((a, e) => a + e.mood, 0) / m.length : 0; };
+const topEmos = (l, n) => { const c = {}; l.forEach(e => (e.emos || []).forEach(x => c[x] = (c[x] || 0) + 1)); return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, n); };
+function recapTodo() {
+  const d = dow(today()); const m = d === 6 ? monday(today()) : d === 0 ? addDays(monday(today()), -7) : null;
+  if (!m || (meta.recapRead || {})[m]) return '';
+  return `<div class="card todo row between"><div><b>📖 Ton récap de la semaine est prêt</b><div class="mute">Tes fiertés, ta semaine. 2 minutes.</div></div><button onclick="openRecap('${m}')">Lire</button></div>`;
+}
+window.openRecap = m => {
+  m = m || (dow(today()) === 0 && !Object.keys(journal).some(d => d >= monday(today())) ? addDays(monday(today()), -7) : monday(today()));
+  meta.recapRead = meta.recapRead || {}; meta.recapRead[m] = true; save();
+  const end = addDays(m, 6), l = jRange(m, end), prides = l.filter(e => e.pride), grats = l.filter(e => e.grat), hard = l.filter(e => e.mood && e.mood <= 2);
+  const w = weekSport(m), nLog = [...Array(7)].filter((_, i) => logged(addDays(m, i))).length, nB = Object.keys(binges).filter(d => d >= m && d <= end).length;
+  const moodDays = [...Array(7)].map((_, i) => { const a = avgMood(journal[addDays(m, i)] || []); return `<div style="text-align:center"><small>${JOURS[i]}</small><div style="font-size:24px">${a ? MOODS[Math.round(a) - 1] : '·'}</div></div>`; }).join('');
+  const li = (arr, k) => arr.map(e => `<div class="item"><span>${esc(e[k])}</span><small>${JOURS[dow(e.d)]}</small></div>`).join('');
+  const isCur = m === monday(today());
+  openSheet(`<div class="row between"><button class="btn3" onclick="openRecap('${addDays(m, -7)}')">‹</button><h2 style="margin:0">📖 Semaine du ${fmtShort(m)}</h2><button class="btn3" ${isCur ? 'style="opacity:.3"' : `onclick="openRecap('${addDays(m, 7)}')"`}>›</button></div>
+    <div class="card"><b>Ton humeur</b><div class="row between" style="margin-top:6px">${moodDays}</div>
+    ${topEmos(l, 5).length ? `<small>Le plus présent : ${topEmos(l, 5).map(x => esc(x[0]) + ' (' + x[1] + ')').join(', ')}</small>` : ''}</div>
+    <div class="card"><b>🌟 Tes fiertés</b>${prides.length ? li(prides, 'pride') : '<p class="mute">Aucune notée cette semaine. Je t\'en donne une : tu as ouvert ton récap. Ça compte.</p>'}</div>
+    <div class="card"><b>🙏 Tes gratitudes</b>${grats.length ? li(grats, 'grat') : '<p class="mute">Rien de noté. La semaine prochaine, essaie juste une.</p>'}</div>
+    ${hard.length ? `<div class="card"><b>💜 Les moments plus durs</b>${hard.map(e => `<div class="item"><span>${MOODS[e.mood - 1]} ${esc((e.emos || []).join(', '))}${e.note ? '<br><small>' + esc(e.note) + '</small>' : ''}</span><small>${JOURS[dow(e.d)]}</small></div>`).join('')}<small>Tu les as traversés. Ils sont aussi dans ton résumé psy du mois.</small></div>` : ''}
+    <div class="card"><b>📊 Ta semaine en bref</b><p>🍽️ Repas notés ${nLog}/7 jours<br>🏋️ ${w.salle} salle · 💃 ${w.danse} danse ${w.done ? '🏆' : ''}${nB ? `<br>💜 ${nB} crise${nB > 1 ? 's' : ''} notée${nB > 1 ? 's' : ''}, et tu as continué ensuite` : ''}</p></div>
+    <div class="msg warm"><b>${pick(['Tu as fait de ton mieux avec ce que tu avais cette semaine. C\'est ça, avancer.', 'Regarde tout ce que tu as fait. Sérieusement, regarde.', 'Une semaine de plus à prendre soin de toi. Fière de toi.', 'Pas parfaite, mais présente. Et c\'est exactement ce qui marche.'])}</b></div>
+    <button class="full" onclick="closeSheet()">Merci 💛</button>`);
+};
+// Résumé mensuel pour le psy
+const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+function monthText(ym) {
+  const [y, mo] = ym.split('-').map(Number), a = `${ym}-01`, last = dkey(new Date(y, mo, 0)), end = last < today() ? last : today();
+  const l = jRange(a, end), nDays = daysBetween(a, end) + 1, B = (x, t) => `• ${x}${t ? ' : ' + t : ''}`;
+  const L = [`Résumé de ${MOIS[mo - 1]} ${y}`, ''];
+  const am = avgMood(l);
+  L.push('HUMEUR');
+  if (am) {
+    L.push(B('Humeur moyenne', `${am.toFixed(1)}/5 (${MOODL[Math.round(am) - 1].toLowerCase()}), ${l.filter(e => e.mood).length} notes`));
+    const weeks = []; for (let d = monday(a); d <= end; d = addDays(d, 7)) { const wl = jRange(d < a ? a : d, addDays(d, 6) > end ? end : addDays(d, 6)); const v = avgMood(wl); if (v) weeks.push(`sem. du ${fmtShort(d < a ? a : d)} ${MOODS[Math.round(v) - 1]} ${v.toFixed(1)}`); }
+    if (weeks.length > 1) L.push(B('Évolution', weeks.join(' → ')));
+    const hd = new Set(l.filter(e => e.mood && e.mood <= 2).map(e => e.d)).size, gd = new Set(l.filter(e => e.mood >= 4).map(e => e.d)).size;
+    L.push(B('Jours difficiles (humeur basse)', hd), B('Jours où je me suis sentie bien', gd));
+  } else L.push(B('Pas d\'humeur notée ce mois-ci'));
+  const te = topEmos(l, 6); if (te.length) { L.push('', 'ÉMOTIONS LES PLUS FRÉQUENTES'); te.forEach(x => L.push(B(x[0], `${x[1]} fois`))); }
+  const hard = l.filter(e => (e.mood && e.mood <= 2) || (e.note && (e.emos || []).some(x => EMO_NEG.includes(x))));
+  if (hard.length) { L.push('', 'MOMENTS DIFFICILES'); hard.forEach(e => L.push(B(fmtShort(e.d), [e.mood ? MOODL[e.mood - 1].toLowerCase() : '', (e.emos || []).join(', ')].filter(Boolean).join(', ') + (e.note ? '. « ' + e.note + ' »' : '')))); }
+  const bs = Object.entries(binges).filter(([d]) => d >= a && d <= end).sort();
+  L.push('', 'CRISES D\'HYPERPHAGIE');
+  if (bs.length) {
+    L.push(B('Nombre', bs.length));
+    const tr = {}; bs.forEach(([, b]) => (b.triggers || []).forEach(t => tr[t] = (tr[t] || 0) + 1));
+    if (Object.keys(tr).length) L.push(B('Déclencheurs identifiés', Object.entries(tr).sort((x, z) => z[1] - x[1]).map(x => `${x[0].toLowerCase()} (${x[1]})`).join(', ')));
+    bs.forEach(([d, b]) => { const em = (journal[d] || []).flatMap(e => e.emos || []); L.push(B(fmtShort(d), [(b.triggers || []).join(', '), em.length ? 'émotions du jour : ' + [...new Set(em)].join(', ').toLowerCase() : '', b.note ? '« ' + b.note + ' »' : ''].filter(Boolean).join('. ') || 'pas de détail')); });
+  } else L.push(B('Aucune crise notée'));
+  const pr = l.filter(e => e.pride), gr = l.filter(e => e.grat);
+  if (pr.length) { L.push('', 'MES FIERTÉS'); pr.forEach(e => L.push(B(e.pride))); }
+  if (gr.length) { L.push('', 'MES GRATITUDES'); gr.forEach(e => L.push(B(e.grat))); }
+  let nLog = 0, sal = 0, dan = 0; for (let d = a; d <= end; d = addDays(d, 1)) { if (logged(d)) nLog++; (sport[d] || []).forEach(t => t === 'salle' ? sal++ : dan++); }
+  L.push('', 'RÉGULARITÉ', B('Repas notés', `${nLog} jours sur ${nDays}`), B('Sport', `${sal} séance${sal > 1 ? 's' : ''} de salle, ${dan} de danse`));
+  L.push('', 'CE DONT JE VOUDRAIS PARLER', '• ');
+  return L.join('\n');
+}
+window.openMonth = ym => {
+  const t = today(), cur = t.slice(0, 7), prev = dkey(new Date(+t.slice(0, 4), +t.slice(5, 7) - 2, 1)).slice(0, 7);
+  ym = ym || (+t.slice(8) <= 7 ? prev : cur);
+  const [y, mo] = ym.split('-').map(Number), pm = dkey(new Date(y, mo - 2, 1)).slice(0, 7), nm = dkey(new Date(y, mo, 1)).slice(0, 7);
+  openSheet(`<div class="row between"><button class="btn3" onclick="openMonth('${pm}')">‹</button><h2 style="margin:0">🧠 ${MOIS[mo - 1]} ${y}</h2><button class="btn3" ${nm > cur ? 'style="opacity:.3"' : `onclick="openMonth('${nm}')"`}>›</button></div>
+    <p class="mute">Tu peux modifier le texte avant de le partager. Ajoute en bas ce dont tu veux parler.</p>
+    <textarea id="mt" rows="18" style="font-size:14px;line-height:1.45">${esc(monthText(ym))}</textarea>
+    <div class="grid2" style="margin-top:10px"><button onclick="shareMonth('${MOIS[mo - 1]} ${y}')">📤 Partager</button><button class="btn2" onclick="copyMonth()">📋 Copier</button></div>
+    <small style="display:block;margin-top:8px">Rien n'est envoyé sans ton action. Tu choisis à qui tu l'envoies (Messages, mail, Notes…).</small>`);
+};
+window.shareMonth = async label => {
+  const text = $('#mt').value;
+  if (navigator.share) { try { await navigator.share({ title: 'Mon mois : ' + label, text }); } catch { } } else copyMonth();
+};
+window.copyMonth = async () => { try { await navigator.clipboard.writeText($('#mt').value); toast('Copié 📋 Colle-le où tu veux.'); } catch { $('#mt').select(); toast('Sélectionné : fais Copier'); } };
 
 // ---------- SPORT ----------
 const SP = { salle: '🏋️ Salle', danse: '💃 Danse' };
@@ -649,6 +778,7 @@ function renderSettings() {
     <small>Pourquoi : la restriction après une crise entretient souvent le cycle crise/restriction. Les protéines ne baissent jamais.</small></div>
   <div class="card"><b>⏰ Heures des repas (rappels)</b>
     <div class="grid2">${Object.entries(MEALS).map(([k, v]) => `<div><label>${v}</label><input type="time" id="t_${k}" value="${cfg.meals[k] || ''}"></div>`).join('')}</div>
+    <label>💭 Rappel humeur du soir</label><input type="time" id="smood" value="${cfg.moodTime || ''}">
     <label>Jour de la photo hebdo</label><select id="sday">${['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map((d, i) => `<option value="${i}" ${+cfg.photoDay === i ? 'selected' : ''}>${d}</option>`).join('')}</select>
     <button class="full" style="margin-top:14px" onclick="saveCfg()">💾 Enregistrer</button></div>
   <div class="card"><b>🔔 Rappels sur ton iPhone</b>
@@ -667,7 +797,7 @@ window.saveCfg = () => {
   cfg.kcal = +$('#sk').value || cfg.kcal; cfg.p = +$('#sp').value || 0; cfg.c = +$('#sc').value || 0; cfg.f = +$('#sf').value || 0;
   cfg.compensate = $('#scomp').checked; cfg.skipBinge = $('#sskip').checked;
   cfg.maxPct = Math.min(25, Math.max(0, +$('#smax').value || 0)); cfg.minKcal = +$('#smin').value || 0;
-  Object.keys(MEALS).forEach(k => cfg.meals[k] = $('#t_' + k).value); cfg.photoDay = +$('#sday').value; cfg.rewards = $('#srw').value.split('\n').map(x => x.trim()).filter(Boolean); cfg.set = true;
+  Object.keys(MEALS).forEach(k => cfg.meals[k] = $('#t_' + k).value); cfg.photoDay = +$('#sday').value; cfg.moodTime = $('#smood').value; cfg.rewards = $('#srw').value.split('\n').map(x => x.trim()).filter(Boolean); cfg.set = true;
   save(); toast('Enregistré ✅'); render();
 };
 
@@ -691,7 +821,10 @@ function exportICS() {
   evs.push(ev('photo', pd, '10:00', '📸 Photo de la semaine', 'Même endroit, même lumière. 30 secondes.', 'FREQ=WEEKLY;BYDAY=' + ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'][+cfg.photoDay]));
   const md = new Date(t.getFullYear(), t.getMonth() + 1, 1);
   evs.push(ev('weight', md, '08:00', '⚖️ Pesée du mois', 'Le matin, à jeun. Puis note-la dans La Pêche.', 'FREQ=MONTHLY;BYMONTHDAY=1'));
-  evs.push(ev('weekly', pd, '18:00', '💜 Bilan de la semaine', 'Regarde ta semaine dans La Pêche. Fière de toi pour chaque jour noté.', 'FREQ=WEEKLY;BYDAY=' + ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'][+cfg.photoDay]));
+  const sun = new Date(t); while (sun.getDay() !== 0) sun.setDate(sun.getDate() + 1);
+  evs.push(ev('weekly', sun, '19:00', '📖 Ton récap de la semaine', 'Tes fiertés, tes gratitudes, ta semaine. Va le lire dans La Pêche.', 'FREQ=WEEKLY;BYDAY=SU'));
+  if (cfg.moodTime) evs.push(ev('mood', t, cfg.moodTime, '💭 Comment tu te sens ?', '1 tap sur un emoji. Une fierté du jour ?', 'FREQ=DAILY'));
+  evs.push(ev('psy', md, '18:00', '🧠 Résumé du mois pour ton psy', 'Onglet Semaine, Résumé psy. Partage-le ou garde-le pour ta séance.', 'FREQ=MONTHLY;BYMONTHDAY=1'));
   const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//La Peche//FR', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:La Pêche', ...evs, 'END:VCALENDAR'].join('\r\n');
   download(new Blob([ics], { type: 'text/calendar;charset=utf-8' }), 'la-peche-rappels.ics');
 }
@@ -704,7 +837,7 @@ const b64 = blob => new Promise(r => { const fr = new FileReader(); fr.onload = 
 window.backup = async () => {
   const ph = await DB.all().catch(() => []);
   const photos = []; for (const p of ph) photos.push({ id: p.id, date: p.date, data: await b64(p.blob) });
-  const data = { v: 1, at: new Date().toISOString(), cfg, entries, foods, binges, weights, meta, sport, photos };
+  const data = { v: 1, at: new Date().toISOString(), cfg, entries, foods, binges, weights, meta, sport, journal, photos };
   download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `la-peche-sauvegarde-${today()}.json`);
 };
 async function restore(e) {
@@ -712,7 +845,7 @@ async function restore(e) {
   try {
     const d = JSON.parse(await f.text()); if (!d.entries) throw 0;
     if (!confirm('Remplacer les données actuelles par cette sauvegarde ?')) return;
-    cfg = Object.assign({}, DEF, d.cfg); entries = d.entries || {}; foods = d.foods || {}; binges = d.binges || {}; weights = d.weights || []; meta = d.meta || {}; sport = d.sport || {};
+    cfg = Object.assign({}, DEF, d.cfg); entries = d.entries || {}; foods = d.foods || {}; binges = d.binges || {}; weights = d.weights || []; meta = d.meta || {}; sport = d.sport || {}; journal = d.journal || {};
     for (const p of d.photos || []) { const blob = await (await fetch(p.data)).blob(); await DB.put({ id: p.id, date: p.date, blob }); }
     save(); toast('Sauvegarde restaurée ✅'); render();
   } catch { toast('Fichier de sauvegarde invalide'); }
