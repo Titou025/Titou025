@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>La Pêche</title>
+<meta name="theme-color" content="#FF7A59">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="La Pêche">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="top"><h1 id="title">🍑 La Pêche</h1><div id="sub"></div></header>
+<main id="view"></main>
+
+<button id="fab" aria-label="Noter un repas">＋ J'ai mangé</button>
+
+<nav id="nav">
+  <button data-tab="today" class="on">🍽️<span>Jour</span></button>
+  <button data-tab="week">📅<span>Semaine</span></button>
+  <button data-tab="sport">🏋️<span>Sport</span></button>
+  <button data-tab="body">📸<span>Corps</span></button>
+  <button data-tab="settings">⚙️<span>Réglages</span></button>
+</nav>
+
+<div id="sheet" class="sheet hidden"><div class="sheet-in" id="sheetIn"></div></div>
+<div id="toast" class="hidden"></div>
+<canvas id="confetti"></canvas>
+<script src="app.js"></script>
+</body>
+</html>
