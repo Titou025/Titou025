@@ -101,7 +101,7 @@ $('#sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
 
 function toast(t, ms = 2600) { const el = $('#toast'); el.textContent = t; el.classList.remove('hidden'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.add('hidden'), ms); }
 function openSheet(html) { $('#sheetIn').innerHTML = html; $('#sheet').classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
-function closeSheet() { $('#sheet').classList.add('hidden'); document.body.style.overflow = ''; }
+function closeSheet() { if (typeof stopScan === 'function') stopScan(); $('#sheet').classList.add('hidden'); document.body.style.overflow = ''; }
 
 function render() {
   $('#fab').classList.toggle('hidden', tab !== 'today' && tab !== 'week');
@@ -202,27 +202,28 @@ function compareDue() {
 
 // ---------- AJOUT ----------
 let A = {};
-window.openAdd = (meal) => { A = { meal: meal || mealNow(), day: tab === 'today' ? viewDay : today() }; addSearch(''); };
+window.openAdd = (meal) => { stopScan(); A = { meal: meal || mealNow(), day: tab === 'today' ? viewDay : today() }; addSearch(''); };
 function recentFoods(q) {
   q = (q || '').toLowerCase();
   return Object.entries(foods).filter(([, f]) => !q || (f.name + ' ' + (f.brand || '')).toLowerCase().includes(q))
     .sort((a, b) => (b[1].last || 0) - (a[1].last || 0)).slice(0, q ? 20 : 10);
 }
 function addSearch(q) {
-  const rec = recentFoods(q);
-  openSheet(`<div class="row between"><h2 style="margin:0">Qu'as-tu mangé ?</h2><button class="btn3" onclick="closeSheet()">Fermer</button></div>
-    <div class="chips">${Object.entries(MEALS).map(([k, v]) => `<button class="chip ${A.meal === k ? 'on' : ''}" onclick="A.meal='${k}';addSearch($('#q').value)">${v}</button>`).join('')}</div>
-    <input id="q" placeholder="Ex : skyr Siggi's, pâtes Barilla, 3017620422003" value="${esc(q)}" autocomplete="off" enterkeyhint="search">
+  const rec = recentFoods(q), R = A.recipe;
+  openSheet(`<div class="row between"><h2 style="margin:0">${R ? '🍲 Ajouter un ingrédient' : 'Qu\'as-tu mangé ?'}</h2><button class="btn3" onclick="${R ? 'recipeEdit()' : 'closeSheet()'}">${R ? '‹ Plat' : 'Fermer'}</button></div>
+    ${R ? '' : `<div class="chips">${Object.entries(MEALS).map(([k, v]) => `<button class="chip ${A.meal === k ? 'on' : ''}" onclick="A.meal='${k}';addSearch($('#q').value)">${v}</button>`).join('')}</div>`}
+    <div class="grid2" style="grid-template-columns:1fr ${R ? '' : '1fr'}"><button onclick="openScan()">📷 Scanner</button>${R ? '' : '<button class="btn2" onclick="openRecipes()">🍲 Plats maison</button>'}</div>
+    <input id="q" style="margin-top:8px" placeholder="Ex : skyr Siggi's, pâtes Barilla" value="${esc(q)}" autocomplete="off" enterkeyhint="search">
     <button class="full" style="margin-top:8px" onclick="offGo()">🔎 Chercher la marque sur internet</button>
-    <div class="row" style="margin-top:8px"><button class="btn2" style="flex:1" onclick="manualFood()">✍️ À la main</button><button class="btn2" style="flex:1" onclick="quickKcal()">⚡ Juste les kcal</button></div>
+    <div class="row" style="margin-top:8px"><button class="btn2" style="flex:1" onclick="manualFood()">✍️ À la main</button>${R ? '' : '<button class="btn2" style="flex:1" onclick="quickKcal()">⚡ Juste les kcal</button>'}</div>
     <div id="res"></div>
     <h2>${q ? 'Dans mes aliments' : 'Récents (1 tap)'}</h2>
-    <div>${rec.length ? rec.map(([key, f]) => `<div class="res" onclick="pickFood('${encodeURIComponent(key)}')"><b>${esc(f.name)}</b>${f.brand ? ` <span class="tag">${esc(f.brand)}</span>` : ''}<br><small>${r0(f.per100.kcal)} kcal/100g · dernière fois ${f.lastQty} g</small></div>`).join('') : '<small>Rien encore. Cherche un produit ou ajoute-le à la main, il apparaîtra ici ensuite.</small>'}</div>`);
+    <div>${rec.length ? rec.map(([key, f]) => `<div class="res" onclick="pickFood('${encodeURIComponent(key)}')"><b>${f.recipe ? '🍲 ' : ''}${esc(f.name)}</b>${f.brand ? ` <span class="tag">${esc(f.brand)}</span>` : ''}<br><small>${f.recipe && f.serving ? `${r0(f.per100.kcal * f.serving / 100)} kcal/portion` : `${r0(f.per100.kcal)} kcal/100g`} · dernière fois ${f.lastQty} g</small></div>`).join('') : '<small>Rien encore. Cherche un produit ou ajoute-le à la main, il apparaîtra ici ensuite.</small>'}</div>`);
   const qi = $('#q');
-  qi.oninput = () => { clearTimeout(qi.t); qi.t = setTimeout(() => { const v = qi.value; addSearch(v); const n = $('#q'); n.focus(); n.setSelectionRange(v.length, v.length); }, 350); };
+  qi.oninput = () => { clearTimeout(window._qt); window._qt = setTimeout(() => { const v = qi.value; addSearch(v); const n = $('#q'); n.focus(); n.setSelectionRange(v.length, v.length); }, 350); };
   qi.onkeydown = e => { if (e.key === 'Enter') offGo(); };
 }
-window.pickFood = key => { const f = foods[decodeURIComponent(key)]; A.food = { name: f.name, brand: f.brand, per100: f.per100, serving: f.serving }; addQty(f.lastQty || 100); };
+window.pickFood = key => { key = decodeURIComponent(key); const f = foods[key]; A.food = { name: f.name, brand: f.brand, per100: f.per100, serving: f.serving, code: f.code, key: f.recipe ? key : null }; addQty(f.lastQty || f.serving || 100); };
 
 // Open Food Facts (base collaborative ouverte, gratuite)
 function offParse(p) {
@@ -233,12 +234,15 @@ function offParse(p) {
   return {
     name: p.product_name_fr || p.product_name || 'Produit sans nom', brand: (p.brands || '').split(',')[0].trim(),
     per100: { kcal: +kcal, p: +(n.proteins_100g || 0), f: +(n.fat_100g || 0), c: +(n.carbohydrates_100g || 0) },
-    serving: p.serving_quantity ? +p.serving_quantity : null, qtyLabel: p.quantity || ''
+    serving: p.serving_quantity ? +p.serving_quantity : null, qtyLabel: p.quantity || '', code: p.code || ''
   };
 }
 let offResults = [];
 window.offGo = async () => {
+  clearTimeout(window._qt);
   const q = $('#q').value.trim(); if (!q) { toast('Tape un nom de produit + la marque'); return; }
+  const known = Object.entries(foods).find(([, f]) => f.code && f.code === q);
+  if (known) { pickFood(encodeURIComponent(known[0])); return; }
   const res = $('#res'); res.innerHTML = '<p class="mute">Recherche en cours…</p>';
   const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 15000);
   const F = 'code,product_name,product_name_fr,brands,nutriments,quantity,serving_quantity';
@@ -265,12 +269,13 @@ function addQty(qty) {
   const chips = [50, 100, 150, 200, 250].concat(f.serving ? [] : []);
   openSheet(`<div class="row between"><h2 style="margin:0">${esc(f.name)}</h2><button class="btn3" onclick="addSearch('')">‹ Retour</button></div>
     ${f.brand ? `<span class="tag">${esc(f.brand)}</span>` : ''}
+    ${f.key ? `<button class="btn3" onclick="recipeEdit('${encodeURIComponent(f.key)}')">✏️ Modifier la recette</button>` : ''}
     <p class="mute">Pour 100 g : ${r0(f.per100.kcal)} kcal · P${r1(f.per100.p)} G${r1(f.per100.c)} L${r1(f.per100.f)}</p>
     <label>Quantité (g ou ml)</label><input id="qty" type="number" inputmode="decimal" value="${qty}">
     <div class="chips">${f.serving ? `<button class="chip" onclick="setQ(${f.serving})">1 portion (${f.serving} g)</button>` : ''}${chips.map(c => `<button class="chip" onclick="setQ(${c})">${c} g</button>`).join('')}</div>
     <div class="card" id="calc"></div>
-    <div class="chips">${Object.entries(MEALS).map(([k, v]) => `<button class="chip ${A.meal === k ? 'on' : ''}" onclick="A.meal='${k}';this.parentNode.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));this.classList.add('on')">${v}</button>`).join('')}</div>
-    <button class="full" style="font-size:18px;padding:16px" onclick="confirmAdd()">✅ Ajouter</button>`);
+    <div class="chips ${A.recipe ? 'hidden' : ''}">${Object.entries(MEALS).map(([k, v]) => `<button class="chip ${A.meal === k ? 'on' : ''}" onclick="A.meal='${k}';this.parentNode.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));this.classList.add('on')">${v}</button>`).join('')}</div>
+    <button class="full" style="font-size:18px;padding:16px" onclick="confirmAdd()">✅ ${A.recipe ? 'Ajouter au plat' : 'Ajouter'}</button>`);
   const upd = () => { const q = +$('#qty').value || 0, x = q / 100; $('#calc').innerHTML = `<div class="big">${r0(f.per100.kcal * x)} <small>kcal</small></div><div class="mute">Protéines ${r1(f.per100.p * x)} g · Glucides ${r1(f.per100.c * x)} g · Lipides ${r1(f.per100.f * x)} g</div>`; };
   $('#qty').oninput = upd; upd();
   window.setQ = v => { $('#qty').value = v; upd(); };
@@ -278,11 +283,85 @@ function addQty(qty) {
 window.confirmAdd = () => {
   const f = A.food, q = +$('#qty').value || 0; if (!q) { toast('Mets une quantité'); return; }
   const x = q / 100;
-  pushEntry({ name: f.name, brand: f.brand || '', qty: q, meal: A.meal, kcal: f.per100.kcal * x, p: f.per100.p * x, f: f.per100.f * x, c: f.per100.c * x });
-  const key = (f.name + '|' + (f.brand || '')).toLowerCase();
-  foods[key] = { name: f.name, brand: f.brand || '', per100: f.per100, serving: f.serving || null, lastQty: q, uses: ((foods[key] || {}).uses || 0) + 1, last: Date.now() };
+  const key = f.key || (f.name + '|' + (f.brand || '')).toLowerCase(), old = foods[key] || {};
+  foods[key] = { ...old, name: f.name, brand: f.brand || '', per100: f.per100, serving: f.serving || old.serving || null, code: f.code || old.code || '', lastQty: A.recipe ? (old.lastQty || q) : q, uses: (old.uses || 0) + 1, last: Date.now() };
   save();
+  if (A.recipe) { A.recipe.items.push({ name: f.name, brand: f.brand || '', qty: q, per100: f.per100 }); recipeEdit(); return; }
+  pushEntry({ name: f.name, brand: f.brand || '', qty: q, meal: A.meal, kcal: f.per100.kcal * x, p: f.per100.p * x, f: f.per100.f * x, c: f.per100.c * x });
 };
+
+// ---------- PLATS MAISON ----------
+window.openRecipes = () => {
+  const list = Object.entries(foods).filter(([, f]) => f.recipe).sort((a, b) => (b[1].last || 0) - (a[1].last || 0));
+  openSheet(`<div class="row between"><h2 style="margin:0">🍲 Plats maison</h2><button class="btn3" onclick="addSearch('')">‹ Retour</button></div>
+    <p class="mute">Tu crées la recette une fois, ensuite c'est 1 tap.</p>
+    <button class="full" onclick="recipeEdit()">＋ Nouveau plat</button>
+    <div style="margin-top:10px">${list.length ? list.map(([k, f]) => `<div class="res" onclick="pickFood('${encodeURIComponent(k)}')"><b>${esc(f.name)}</b><br><small>${f.serving ? r0(f.per100.kcal * f.serving / 100) + ' kcal/portion · ' : ''}${f.recipe.items.length} ingrédients</small></div>`).join('') : '<small>Aucun plat pour l\'instant.</small>'}</div>`);
+};
+window.recipeEdit = key => {
+  if (key !== undefined) {
+    key = decodeURIComponent(key); const f = foods[key];
+    A.recipe = { key, name: f.name, items: f.recipe.items.slice(), cooked: f.recipe.cooked || '', portions: f.recipe.portions || 1 };
+  } else if (!A.recipe) A.recipe = { key: null, name: '', items: [], cooked: '', portions: 2 };
+  const R = A.recipe, t = sum(R.items.map(i => ({ kcal: i.per100.kcal * i.qty / 100, p: i.per100.p * i.qty / 100, f: i.per100.f * i.qty / 100, c: i.per100.c * i.qty / 100 })));
+  const raw = R.items.reduce((a, i) => a + i.qty, 0), por = Math.max(1, +R.portions || 1);
+  openSheet(`<div class="row between"><h2 style="margin:0">🍲 ${R.key ? 'Modifier le plat' : 'Nouveau plat'}</h2><button class="btn3" onclick="A.recipe=null;openRecipes()">Annuler</button></div>
+    <label>Nom du plat</label><input id="rn" value="${esc(R.name)}" placeholder="Ex : Bolo de Tanit" oninput="A.recipe.name=this.value">
+    <h2>Ingrédients</h2>
+    ${R.items.map((i, n) => `<div class="item"><div><div class="n">${esc(i.name)}${i.brand ? ` <span class="tag">${esc(i.brand)}</span>` : ''}</div><small>${i.qty} g · ${r0(i.per100.kcal * i.qty / 100)} kcal</small></div><button class="del" onclick="A.recipe.items.splice(${n},1);recipeEdit()">✕</button></div>`).join('') || '<small>Ajoute les ingrédients avec leur poids <b>cru</b>.</small>'}
+    <button class="btn2 full" style="margin-top:10px" onclick="addSearch('')">＋ Ingrédient</button>
+    <div class="grid2"><div><label>Nombre de portions</label><input type="number" inputmode="numeric" value="${R.portions}" oninput="A.recipe.portions=this.value"></div>
+    <div><label>Poids cuit total (g, optionnel)</label><input type="number" inputmode="numeric" value="${R.cooked}" placeholder="${r0(raw)}" oninput="A.recipe.cooked=this.value"></div></div>
+    <small>Le poids cuit sert si tu te sers « au poids » dans la casserole. Sinon, les portions suffisent.</small>
+    ${R.items.length ? `<div class="card"><b>${r0(t.kcal)} kcal au total</b><div class="mute">1 portion ≈ ${r0(t.kcal / por)} kcal · P${r0(t.p / por)} G${r0(t.c / por)} L${r0(t.f / por)}</div></div>` : ''}
+    <button class="full" style="margin-top:8px;padding:16px" onclick="recipeSave()">💾 Enregistrer le plat</button>
+    ${R.key ? '<button class="btn3 full" onclick="recipeDel()">Supprimer ce plat</button>' : ''}`);
+};
+window.recipeSave = () => {
+  const R = A.recipe; if (!R.name.trim()) { toast('Donne un nom au plat'); return; }
+  if (!R.items.length) { toast('Ajoute au moins un ingrédient'); return; }
+  const t = R.items.reduce((a, i) => { for (const m of ['kcal', 'p', 'f', 'c']) a[m] += i.per100[m] * i.qty / 100; return a; }, { kcal: 0, p: 0, f: 0, c: 0 });
+  const weight = +R.cooked || R.items.reduce((a, i) => a + i.qty, 0), por = Math.max(1, +R.portions || 1);
+  const per100 = { kcal: t.kcal * 100 / weight, p: t.p * 100 / weight, f: t.f * 100 / weight, c: t.c * 100 / weight };
+  const key = 'plat|' + R.name.trim().toLowerCase(), old = (R.key && foods[R.key]) || foods[key] || {};
+  if (R.key && R.key !== key) delete foods[R.key];
+  const serving = r0(weight / por);
+  foods[key] = { ...old, name: R.name.trim(), brand: 'Maison', per100, serving, lastQty: serving, uses: old.uses || 0, last: Date.now(), recipe: { items: R.items, cooked: R.cooked, portions: por } };
+  A.recipe = null; save(); toast('Plat enregistré 🍲'); confetti(60);
+  A.food = { name: foods[key].name, brand: 'Maison', per100, serving, key }; addQty(serving);
+};
+window.recipeDel = () => { if (!confirm('Supprimer ce plat ?')) return; delete foods[A.recipe.key]; A.recipe = null; save(); openRecipes(); };
+
+// ---------- SCANNER CODE-BARRES ----------
+let scanner = null;
+function loadScanLib() {
+  if (window.Html5Qrcode) return Promise.resolve();
+  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'lib/html5-qrcode.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+}
+async function stopScan() { if (scanner) { try { await scanner.stop(); } catch { } try { scanner.clear(); } catch { } scanner = null; } }
+function scanned(code) {
+  if (navigator.vibrate) navigator.vibrate(80);
+  stopScan(); addSearch(code); offGo();
+}
+window.openScan = async () => {
+  openSheet(`<div class="row between"><h2 style="margin:0">📷 Scanner</h2><button class="btn3" onclick="stopScan();addSearch('')">‹ Retour</button></div>
+    <p class="mute">Vise le code-barres du produit (les traits noirs).</p>
+    <div id="reader" style="width:100%;border-radius:16px;overflow:hidden;background:#000;min-height:220px"></div>
+    <label class="btn btn2 full" style="text-align:center;margin-top:10px">🖼️ La caméra ne marche pas ? Prends le code en photo<input id="scf" type="file" accept="image/*" hidden></label>`);
+  try { await loadScanLib(); } catch { toast('Scanner indisponible hors ligne'); return; }
+  const F = Html5QrcodeSupportedFormats, formats = [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E];
+  $('#scf').onchange = async e => {
+    const file = e.target.files[0]; if (!file) return;
+    await stopScan();
+    try { const r = await new Html5Qrcode('reader', { formatsToSupport: formats, verbose: false }).scanFile(file, false); scanned(r); }
+    catch { toast('Code non lu. Rapproche-toi, bonne lumière, code bien à plat.'); }
+  };
+  try {
+    scanner = new Html5Qrcode('reader', { formatsToSupport: formats, verbose: false });
+    await scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: (w, h) => ({ width: Math.min(300, w * 0.85), height: Math.min(160, h * 0.5) }) }, scanned, () => { });
+  } catch { scanner = null; toast('Caméra refusée ou indisponible. Utilise la photo juste en dessous.'); }
+};
+window.stopScan = stopScan;
 function pushEntry(e) {
   const k = A.day || today();
   const first = !logged(k);
